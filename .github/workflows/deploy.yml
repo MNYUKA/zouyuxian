@@ -1,90 +1,84 @@
 # 🍮 Yuka 的点心房 · 自动同步→构建→部署
-
-# 
-
+#
 # 流程：Notion 同步 → 有变化则提交 → 构建 → 部署到 GitHub Pages
-
 # 单工作流完成，避免 GITHUB_TOKEN 推送触发循环。
-
-# 定时：每小时一次（GitHub 规定仓库 60 天无活动会自动停掉定时任务，
-
-# 届时在 Actions 页面手动点 Run workflow 即可）
-
-# 手动：在仓库 Actions 页面点 Run workflow 立即同步
+# - 定时：每小时一次（GitHub 规定仓库 60 天无活动会自动停掉定时任务，
+#   届时在 Actions 页面手动点 Run workflow 即可）
+# - 手动：在仓库 Actions 页面点 Run workflow 立即同步
 
 name: Sync, Build & Deploy
 
 on:
-schedule:
-- cron: '17 * * * *'
-workflow_dispatch:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
 
 permissions:
-contents: write # 提交同步下来的内容
-pages: write
-id-token: write
+  contents: write # 提交同步下来的内容
+  pages: write
+  id-token: write
 
 concurrency:
-group: 'pages'
-cancel-in-progress: false
+  group: 'pages'
+  cancel-in-progress: false
 
 jobs:
-sync-build-deploy:
-runs-on: ubuntu-latest
-environment:
-name: github-pages
-url: ${{ steps.deployment.outputs.page_url }}
-steps:
-- name: Checkout
-uses: actions/checkout@v4
+  sync-build-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-  - name: Setup pnpm
-    uses: pnpm/action-setup@v4
-    with:
-      version: 10
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
 
-  - name: Setup Node
-    uses: actions/setup-node@v4
-    with:
-      node-version: 24
-      cache: 'pnpm'
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'pnpm'
 
-  - name: Install dependencies
-    run: pnpm install --frozen-lockfile
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-  - name: Sync content from Notion
-    env:
-      NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-      # 统一内容库 "Yuka Content Library" 的 database id（公开信息，不是密钥）
-      # 单库按 Section 分流：Writing / Listening / Archive
-      NOTION_DB_CONTENT: '3fd56297d20f80099062f47841fc4052'
-    run: pnpm sync
+      - name: Sync content from Notion
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          # 统一内容库 "Yuka Content Library" 的 database id（公开信息，不是密钥）
+          # 单库按 Section 分流：Writing / Listening / Archive
+          NOTION_DB_CONTENT: '3fd56297d20f80099062f47841fc4052'
+        run: pnpm sync
 
-  - name: Commit synced content if changed
-    run: |
-      git config user.name "yuka-site-bot"
-      git config user.email "yuka-site-bot@users.noreply.github.com"
-      git add src/content-gen public/notion-img
-      if git diff --cached --quiet; then
-        echo "no_changes=true" >> "$GITHUB_ENV"
-        echo "内容无变化，跳过构建与部署。"
-      else
-        git commit -m "chore: sync content from Notion"
-        git push
+      - name: Commit synced content if changed
+        run: |
+          git config user.name "yuka-site-bot"
+          git config user.email "yuka-site-bot@users.noreply.github.com"
+          git add src/content-gen public/notion-img
+          if git diff --cached --quiet; then
+            echo "no_changes=true" >> "$GITHUB_ENV"
+            echo "内容无变化，跳过构建与部署。"
+          else
+            git commit -m "chore: sync content from Notion"
+            git push
 
-  - name: Build site
-    if: env.no_changes != 'true'
-    run: |
-      pnpm build
-      npx pagefind --site dist
+      - name: Build site
+        if: env.no_changes != 'true'
+        run: |
+          pnpm build
+          npx pagefind --site dist
 
-  - name: Upload Pages artifact
-    if: env.no_changes != 'true'
-    uses: actions/upload-pages-artifact@v3
-    with:
-      path: dist
+      - name: Upload Pages artifact
+        if: env.no_changes != 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
 
-  - name: Deploy to GitHub Pages
-    if: env.no_changes != 'true'
-    id: deployment
-    uses: actions/deploy-pages@v4
+      - name: Deploy to GitHub Pages
+        if: env.no_changes != 'true'
+        id: deployment
+        uses: actions/deploy-pages@v4
