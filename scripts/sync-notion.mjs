@@ -187,9 +187,16 @@ async function buildArchive(page, slug) {
 }
 
 // ---------- 主流程 ----------
-async function queryPublished(cursor) {
-  return notion.databases.query({
-    database_id: DB,
+// v5 API：先解析 database 的 data source（兼容单/多个），再逐个查询，page.id 去重
+async function resolveDataSourceIds() {
+  const db = await notion.databases.retrieve({ database_id: DB });
+  const refs = db.data_sources || [];
+  if (!refs.length) throw new Error('数据库没有可用的 data source');
+  return refs.map(r => r.id);
+}
+async function queryPublished(dataSourceId, cursor) {
+  return notion.dataSources.query({
+    data_source_id: dataSourceId,
     filter: { property: 'Status', select: { equals: 'Published' } },
     sorts: [{ property: 'Publish Date', direction: 'descending' }],
     start_cursor: cursor, page_size: 100,
@@ -202,11 +209,17 @@ async function main() {
 
   const kept = { writing: new Set(), listening: new Set(), archive: new Set() };
   const counts = { writing: 0, listening: 0, archive: 0, skipped: 0 };
-  let cursor;
-  do {
-    const res = await queryPublished(cursor);
-    for (const page of res.results) {
-      if (!('properties' in page)) continue;
+  const seen = new Set();
+  const dataSourceIds = await resolveDataSourceIds();
+  console.log(`📚 找到 ${dataSourceIds.length} 个数据源，开始同步…`);
+  for (const dsId of dataSourceIds) {
+    let cursor;
+    do {
+      const res = await queryPublished(dsId, cursor);
+      for (const page of res.results) {
+        if (!('properties' in page)) continue;
+        if (seen.has(page.id)) continue;
+        seen.add(page.id);
       try {
         const section = norm(selectOf(page, 'Section'));
         const pubDate = pubDateOf(page);
@@ -227,7 +240,8 @@ async function main() {
       }
     }
     cursor = res.has_more ? res.next_cursor : undefined;
-  } while (cursor);
+    } while (cursor);
+  }
 
   // prune：删掉已取消发布/删除的行对应的旧文件
   for (const d of ['writing', 'listening', 'archive']) {
