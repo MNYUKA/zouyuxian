@@ -1,0 +1,40 @@
+---
+import Base from '../../layouts/Base.astro';
+import FormattedDate from '../../components/FormattedDate.astro';
+import { getCollection } from 'astro:content';
+
+export async function getStaticPaths() {
+  const episodes = await getCollection('episodes');
+  return episodes.map((entry) => ({
+    params: { slug: entry.id.replace(/\.md$/, '') },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await entry.render();
+const base = import.meta.env.BASE_URL;
+---
+
+<Base title={entry.data.title} description={entry.data.description} current="/listening/">
+  <div class="narrow article" style="padding-top:26px">
+    <div style="font-size:13px;margin-bottom:10px;font-family:var(--sans)">
+      <a href={`${base}listening/`} style="color:var(--muted)">← Listening</a>
+    </div>
+    <h1>{entry.data.title}</h1>
+    <div class="meta">
+      <FormattedDate date={entry.data.pubDate} />
+      {entry.data.format && ` · ${entry.data.format}`}
+      {entry.data.duration && ` · ${entry.data.duration}`}
+    </div>
+    {entry.data.audioUrl && (
+      <div class="player" style="font-family:var(--sans);margin-bottom:28px">
+        <div class="plabel">播放本期（音频托管于 archive.org）</div>
+        <audio controls preload="none" src={entry.data.audioUrl}></audio>
+      </div>
+    )}
+    <div class="body">
+      <Content />
+    </div>
+  </div>
+</Base>

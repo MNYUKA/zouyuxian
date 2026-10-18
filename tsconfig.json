@@ -1,0 +1,1 @@
+{"compilerOptions":{"types":["pagefind"]},"extends":"astro/tsconfigs/strict"}

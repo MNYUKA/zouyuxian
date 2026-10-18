@@ -1,0 +1,9 @@
+---
+// 日期格式化：2026-10-12
+interface Props { date: Date; }
+const { date } = Astro.props;
+const y = date.getFullYear();
+const m = String(date.getMonth() + 1).padStart(2, '0');
+const d = String(date.getDate()).padStart(2, '0');
+---
+<time datetime={date.toISOString()}>{`${y}-${m}-${d}`}</time>

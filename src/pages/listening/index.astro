@@ -1,0 +1,37 @@
+---
+import Base from '../../layouts/Base.astro';
+import FormattedDate from '../../components/FormattedDate.astro';
+import { getCollection } from 'astro:content';
+
+const base = import.meta.env.BASE_URL;
+const episodes = (await getCollection('episodes')).sort(
+  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
+);
+const slugOf = (id: string) => id.replace(/\.md$/, '');
+---
+
+<Base title="Listening" current="/listening/">
+  <div class="narrow" style="padding-top:26px">
+    <h1 style="font-family:var(--serif);font-size:34px;font-weight:400;letter-spacing:.06em;margin:0">Listening</h1>
+    <div style="font-size:13px;color:var(--muted);margin:6px 0 20px">
+      播客节目。{episodes.length > 0 ? `共 ${episodes.length} 期，按发布时间倒序。` : '还没有发布节目。'}
+    </div>
+    {episodes.map((e) => (
+      <div class="postitem">
+        <a href={`${base}listening/${slugOf(e.id)}/`}><h3>{e.data.title}</h3></a>
+        <div class="meta">
+          <FormattedDate date={e.data.pubDate} />
+          {e.data.format && ` · ${e.data.format}`}
+          {e.data.duration && ` · ${e.data.duration}`}
+        </div>
+        {e.data.description && <p class="desc">{e.data.description}</p>}
+        {e.data.audioUrl && (
+          <div class="player">
+            <div class="plabel">试听本期</div>
+            <audio controls preload="none" src={e.data.audioUrl}></audio>
+          </div>
+        )}
+      </div>
+    ))}
+  </div>
+</Base>

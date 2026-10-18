@@ -1,0 +1,61 @@
+---
+import Base from '../../layouts/Base.astro';
+import FormattedDate from '../../components/FormattedDate.astro';
+import { getCollection } from 'astro:content';
+import { WRITING_CATEGORIES, FORMAT_CN } from '../../consts';
+
+const base = import.meta.env.BASE_URL;
+const articles = (await getCollection('articles')).sort(
+  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
+);
+const slugOf = (id: string) => id.replace(/\.md$/, '');
+const catEn = (slug: string) => WRITING_CATEGORIES.find((c) => c.slug === slug)?.en ?? slug;
+---
+
+<Base title="Writing" current="/writing/">
+  <div class="narrow" style="padding-top:26px">
+    <h1 style="font-family:var(--serif);font-size:34px;font-weight:400;letter-spacing:.06em;margin:0">Writing</h1>
+
+    {articles.length === 0 ? (
+      <p style="color:var(--muted);margin-top:28px">还没有发布文章。去 Notion 写下第一篇吧。</p>
+    ) : (
+      <>
+        <div class="filterbar" id="filterbar">
+          <button class="on" data-cat="all">全部</button>
+          {WRITING_CATEGORIES.map((c) => (
+            <button data-cat={c.slug}>{c.en}</button>
+          ))}
+        </div>
+        <div id="article-list">
+          {articles.map((a) => (
+            <div class="postitem" data-cat={a.data.category}>
+              <a href={`${base}writing/${slugOf(a.id)}/`}><h3>{a.data.title}</h3></a>
+              <div class="meta">
+                <FormattedDate date={a.data.pubDate} />
+                {` · ${catEn(a.data.category)}`}
+                {a.data.format && ` · ${FORMAT_CN[a.data.format] ?? a.data.format}`}
+              </div>
+              {a.data.description && <p class="desc">{a.data.description}</p>}
+            </div>
+          ))}
+        </div>
+      </>
+    )}
+  </div>
+</Base>
+
+<script>
+  const bar = document.getElementById('filterbar');
+  const items = Array.from(document.querySelectorAll('#article-list .postitem'));
+  bar?.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest('button');
+    if (!btn) return;
+    bar.querySelectorAll('button').forEach((b) => b.classList.remove('on'));
+    btn.classList.add('on');
+    const cat = btn.dataset.cat;
+    items.forEach((el) => {
+      const show = cat === 'all' || (el as HTMLElement).dataset.cat === cat;
+      (el as HTMLElement).style.display = show ? '' : 'none';
+    });
+  });
+</script>

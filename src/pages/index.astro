@@ -1,0 +1,83 @@
+---
+import Base from '../layouts/Base.astro';
+import FormattedDate from '../components/FormattedDate.astro';
+import { getCollection } from 'astro:content';
+import { SITE, FORMAT_CN } from '../consts';
+
+const base = import.meta.env.BASE_URL;
+
+const articles = (await getCollection('articles')).sort(
+  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
+);
+const episodes = (await getCollection('episodes')).sort(
+  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
+);
+const archiveItems = (await getCollection('archive')).sort(
+  (a, b) => b.data.date.valueOf() - a.data.date.valueOf()
+);
+
+const latestArticles = articles.slice(0, 5);
+const latestEpisode = episodes[0];
+const latestArchive = archiveItems[0];
+
+const slugOf = (id: string) => id.replace(/\.md$/, '');
+---
+
+<Base current="/">
+  <header class="hero">
+    <h1>{SITE.tagline[0]}<br />{SITE.tagline[1]}</h1>
+    <div class="en">{SITE.taglineEn}</div>
+    <div class="rule"></div>
+  </header>
+
+  {latestArticles.length > 0 && (
+    <section class="narrow">
+      <h2 class="secttl">最近在思考</h2>
+      <div class="secsub">最近的 Writing 文章</div>
+      {latestArticles.map((a) => (
+        <div class="postitem">
+          <a href={`${base}writing/${slugOf(a.id)}/`}><h3>{a.data.title}</h3></a>
+          <div class="meta">
+            <FormattedDate date={a.data.pubDate} />
+            {a.data.format && ` · ${FORMAT_CN[a.data.format] ?? a.data.format}`}
+          </div>
+          {a.data.description && <p class="desc">{a.data.description}</p>}
+        </div>
+      ))}
+    </section>
+  )}
+
+  {latestEpisode && (
+    <section class="narrow" style="margin-top:56px">
+      <h2 class="secttl">最近的对话</h2>
+      <div class="secsub">最新的一期播客</div>
+      <div class="postitem">
+        <a href={`${base}listening/${slugOf(latestEpisode.id)}/`}><h3>{latestEpisode.data.title}</h3></a>
+        <div class="meta">
+          <FormattedDate date={latestEpisode.data.pubDate} />
+          {latestEpisode.data.format && ` · ${latestEpisode.data.format}`}
+          {latestEpisode.data.duration && ` · ${latestEpisode.data.duration}`}
+        </div>
+        {latestEpisode.data.description && <p class="desc">{latestEpisode.data.description}</p>}
+        {latestEpisode.data.audioUrl && (
+          <div class="player">
+            <div class="plabel">试听本期</div>
+            <audio controls preload="none" src={latestEpisode.data.audioUrl}></audio>
+          </div>
+        )}
+      </div>
+    </section>
+  )}
+
+  {latestArchive && (
+    <section class="narrow" style="margin-top:56px">
+      <h2 class="secttl">最近收录</h2>
+      <div class="secsub">最新的一条收藏</div>
+      <div class="postitem">
+        <h3>{latestArchive.data.title}</h3>
+        <div class="meta"><FormattedDate date={latestArchive.data.date} /></div>
+        {latestArchive.data.description && <p class="desc">{latestArchive.data.description}</p>}
+      </div>
+    </section>
+  )}
+</Base>

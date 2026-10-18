@@ -1,0 +1,49 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="搜索" current="">
+  <div class="narrow" style="padding-top:26px">
+    <h1 style="font-family:var(--serif);font-size:34px;font-weight:400;letter-spacing:.06em;margin:0">搜索</h1>
+    <div style="font-size:13px;color:var(--muted);margin:6px 0 4px">搜标题、摘要和正文，只包含已公开的内容。</div>
+    <div class="searchbox">
+      <input id="q" type="search" placeholder="输入关键词…" autocomplete="off" />
+    </div>
+    <div id="results" style="margin-top:10px"></div>
+  </div>
+</Base>
+
+<script is:inline src="/zouyuxian/pagefind/pagefind.js"></script>
+<script is:inline>
+  window.addEventListener('DOMContentLoaded', async () => {
+    const input = document.getElementById('q');
+    const results = document.getElementById('results');
+    if (!input || !results) return;
+    let pagefind = null;
+    try {
+      pagefind = await import('/zouyuxian/pagefind/pagefind.js');
+      await pagefind.init();
+    } catch (e) {
+      results.innerHTML = '<p style="color:var(--muted)">搜索索引尚未生成。</p>';
+      return;
+    }
+    let timer = null;
+    input.addEventListener('input', () => {
+      clearTimeout(timer);
+      timer = setTimeout(async () => {
+        const kw = input.value.trim();
+        if (!kw) { results.innerHTML = ''; return; }
+        const search = await pagefind.search(kw);
+        if (search.results.length === 0) {
+          results.innerHTML = '<p style="color:var(--muted)">没有找到相关内容。</p>';
+          return;
+        }
+        const items = await Promise.all(search.results.slice(0, 20).map((r) => r.data()));
+        results.innerHTML = items.map((d) =>
+          '<div class="postitem"><a href="' + d.url + '"><h3>' + d.meta.title + '</h3></a>' +
+          (d.excerpt ? '<p class="desc">' + d.excerpt + '</p>' : '') + '</div>'
+        ).join('');
+      }, 250);
+    });
+  });
+</script>
