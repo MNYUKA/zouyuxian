@@ -194,13 +194,25 @@ async function resolveDataSourceIds() {
   if (!refs.length) throw new Error('数据库没有可用的 data source');
   return refs.map(r => r.id);
 }
-async function queryPublished(dataSourceId, cursor) {
-  return notion.dataSources.query({
-    data_source_id: dataSourceId,
-    filter: { property: 'Status', select: { equals: 'Published' } },
-    sorts: [{ property: 'Publish Date', direction: 'descending' }],
-    start_cursor: cursor, page_size: 100,
-  });
+// 每个数据源先看 schema，只用它实际拥有的字段做 filter/sort，避免跨源字段不一致报错
+async function queryDataSource(dataSourceId) {
+  const schema = await notion.dataSources.retrieve({ data_source_id: dataSourceId });
+  const props = schema.properties || {};
+  const q = { data_source_id: dataSourceId, page_size: 100 };
+  if (props['Status'] && props['Status'].type === 'select') {
+    q.filter = { property: 'Status', select: { equals: 'Published' } };
+  }
+  if (props['Publish Date'] && props['Publish Date'].type === 'date') {
+    q.sorts = [{ property: 'Publish Date', direction: 'descending' }];
+  }
+  const pages = [];
+  let cursor;
+  do {
+    const res = await notion.dataSources.query({ ...q, start_cursor: cursor });
+    pages.push(...res.results);
+    cursor = res.has_more ? res.next_cursor : undefined;
+  } while (cursor);
+  return pages;
 }
 
 async function main() {
@@ -212,15 +224,26 @@ async function main() {
   const seen = new Set();
   const dataSourceIds = await resolveDataSourceIds();
   console.log(`📚 找到 ${dataSourceIds.length} 个数据源，开始同步…`);
+  // 先收齐所有源的页面（page.id 去重），再统一在本地按发布日期倒序排
+  const allPages = [];
   for (const dsId of dataSourceIds) {
-    let cursor;
-    do {
-      const res = await queryPublished(dsId, cursor);
-      for (const page of res.results) {
-        if (!('properties' in page)) continue;
-        if (seen.has(page.id)) continue;
-        seen.add(page.id);
+    try {
+      const pages = await queryDataSource(dsId);
+      for (const p of pages) {
+        if (!('properties' in p)) continue;
+        if (seen.has(p.id)) continue;
+        seen.add(p.id);
+        allPages.push(p);
+      }
+    } catch (e) {
+      warn(`数据源 ${dsId.slice(0, 8)}… 查询失败，已跳过：${e.message}`);
+    }
+  }
+  allPages.sort((a, b) => (pubDateOf(b) || '').localeCompare(pubDateOf(a) || ''));
+  for (const page of allPages) {
       try {
+        const st = selectOf(page, 'Status');
+        if (st && st !== 'Published') { counts.skipped++; continue; } // 保险：非 Published 不进仓库
         const section = norm(selectOf(page, 'Section'));
         const pubDate = pubDateOf(page);
         if (isFuture(pubDate)) { counts.skipped++; warn(`发布日期在未来（${pubDate.slice(0, 10)}），已跳过（页：「${titleOf(page).slice(0, 24)}」）`); continue; }
@@ -238,10 +261,7 @@ async function main() {
         counts.skipped++;
         warn(`页面同步失败（「${titleOf(page).slice(0, 24)}」）：${e.message}`);
       }
-    }
-    cursor = res.has_more ? res.next_cursor : undefined;
-    } while (cursor);
-  }
+  } // end for page
 
   // prune：删掉已取消发布/删除的行对应的旧文件
   for (const d of ['writing', 'listening', 'archive']) {
