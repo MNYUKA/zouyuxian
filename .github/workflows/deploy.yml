@@ -60,25 +60,22 @@ jobs:
           git config user.email "yuka-site-bot@users.noreply.github.com"
           git add src/content-gen public/notion-img
           if git diff --cached --quiet; then
-            echo "no_changes=true" >> "$GITHUB_ENV"
-            echo "内容无变化，跳过构建与部署。"
+            echo "内容无变化，跳过提交。"
           else
             git commit -m "chore: sync content from Notion"
             git push
+          fi
 
       - name: Build site
-        if: env.no_changes != 'true'
         run: |
           pnpm build
           npx pagefind --site dist
 
       - name: Upload Pages artifact
-        if: env.no_changes != 'true'
         uses: actions/upload-pages-artifact@v3
         with:
           path: dist
 
       - name: Deploy to GitHub Pages
-        if: env.no_changes != 'true'
         id: deployment
         uses: actions/deploy-pages@v4
