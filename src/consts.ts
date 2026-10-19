@@ -15,6 +15,7 @@ export const NAV = [
   { href: '/listening/', label: 'Listening' },
   { href: '/archive/', label: 'Archive' },
   { href: '/about/', label: 'About' },
+  { href: '/search/', label: '🔍' },
 ] as const;
 
 // Writing 主题（顺序：Self / World / Learning / Others）
