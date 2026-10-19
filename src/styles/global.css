@@ -50,7 +50,8 @@ img { max-width: 100%; height: auto; }
   display: flex; align-items: center; justify-content: space-between;
   padding: 22px 0; max-width: 880px; margin: 0 auto; padding-left: 28px; padding-right: 28px;
 }
-.brand { font-family: var(--serif); font-size: 17px; letter-spacing: .02em; }
+.brand { font-family: var(--serif); font-size: 17px; letter-spacing: .02em; display: inline-flex; align-items: center; gap: 9px; }
+.brand-avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; display: block; }
 .sitenav .links { display: flex; gap: 24px; font-size: 14px; }
 .sitenav .links a { color: var(--muted); }
 .sitenav .links a:hover, .sitenav .links a[aria-current="page"] { color: var(--text); }
