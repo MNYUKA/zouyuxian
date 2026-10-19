@@ -3,11 +3,23 @@ import Base from '../layouts/Base.astro';
 ---
 
 <Base title="About" current="/about/">
-  <div class="narrow aboutbox" style="padding-top:26px">
-    <h1 style="font-family:var(--serif);font-size:34px;font-weight:400;letter-spacing:.06em;margin:0 0 24px">About</h1>
-    <p>你好，我是 Yuka。这里是我的点心房——一个公开的精神空间，也是我的个人网络之家。</p>
-    <p>我在这里记录对自我、他人和世界的观察，阅读与学习的笔记，多语言学习的实践，播客节目，以及生活里的收藏：书、电影、音乐、风景、城市、店铺和日常物品。</p>
-    <p>我相信诚实地分享思考的过程，本身就有价值。这里没有标准答案，有些文章是成熟的观点，有些还只是没整理完的问题。</p>
-    <p>持续理解世界，慢慢生成想法。</p>
+  <div class="narrow" style="padding-top:26px">
+    <div style="font-size:12px;letter-spacing:.18em;color:var(--muted);margin-bottom:14px">ABOUT / YUKA</div>
+    <h1 style="font-family:var(--serif);font-size:34px;font-weight:400;letter-spacing:.04em;margin:0">你好，我是 Yuka。</h1>
+    <div style="font-size:14px;color:var(--muted);margin:10px 0 28px">持续理解世界，慢慢生成想法。</div>
+    <div class="aboutbody">
+      <p>我用阅读、写作、语言学习和对现实生活的观察，慢慢整理自己对世界的理解。</p>
+      <p>这里有经过整理的文章，也有仍在探索的问题；有播客、学习记录，也有值得留下的书、影像、声音和地方。</p>
+      <p>我希望把自己的思考与实践真实地留下来，既供自己回看，也给可能遇到相似问题的人一点参考。</p>
+    </div>
+    <div style="font-family:var(--serif);font-style:italic;font-size:15px;color:var(--muted);margin-top:30px">Writing · Listening · Learning · Everyday Discoveries</div>
   </div>
 </Base>
+
+<style>
+  .aboutbody p {
+    font-size:16px;
+    line-height:1.95;
+    margin:0 0 1.2em;
+  }
+</style>
