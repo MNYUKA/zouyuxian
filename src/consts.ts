@@ -45,11 +45,11 @@ export const EPISODE_FORMATS = ['精讲书', '新闻感想', '情感观察'] as 
 
 // Archive 分类
 export const ARCHIVE_TYPES = [
-  { slug: 'reading', en: 'Reading', cn: '书籍、文章与其他文字。' },
-  { slug: 'watching', en: 'Watching', cn: '电影、剧集、综艺与值得记录的影像。' },
-  { slug: 'sound', en: 'Sound', cn: '歌曲、音乐与声音。' },
-  { slug: 'places', en: 'Places', cn: '风景、城市、咖啡馆、餐厅（含好吃的店和菜）及其他值得记录的地点。' },
-  { slug: 'objects', en: 'Objects', cn: '日常用品、推荐好物和有趣的事物。' },
+  { slug: 'reading', en: 'Reading', cn: '启发过的书籍、博客与文章。' },
+  { slug: 'watching', en: 'Watching', cn: '喜欢过的电影、电视剧、动画、综艺、纪录片、演讲、线上课程等视频。' },
+  { slug: 'sound', en: 'Sound', cn: '陪伴过的歌曲与声音。' },
+  { slug: 'places', en: 'Places', cn: '流连过的自然风景、城市、建筑与一些不知名之地。' },
+  { slug: 'objects', en: 'Objects', cn: '爱用的日常物品与工具。' },
 ] as const;
 
 // 内容语言
