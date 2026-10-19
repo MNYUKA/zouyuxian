@@ -1,46 +1,34 @@
 ---
 import Base from '../../layouts/Base.astro';
-import FormattedDate from '../../components/FormattedDate.astro';
-import { getCollection } from 'astro:content';
 import { ARCHIVE_TYPES } from '../../consts';
 
 const base = import.meta.env.BASE_URL;
-const items = await getCollection('archive');
-const byType = (t: string) =>
-  items.filter((i) => i.data.type === t).sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
 ---
 
 <Base title="Archive" current="/archive/">
   <div class="narrow" style="padding-top:26px">
     <h1 style="font-family:var(--serif);font-size:34px;font-weight:400;letter-spacing:.06em;margin:0">Archive</h1>
-    <div style="font-size:13px;color:var(--muted);margin:8px 0 6px">思想来源库与日常收藏。不必深刻，喜欢就收录。</div>
-    {ARCHIVE_TYPES.map((t) => {
-      const list = byType(t.slug).slice(0, 5);
-      return (
-        <div class="archcat">
-          <h2>{t.en}</h2>
-          <div class="cnexp">{t.cn}</div>
-          {list.length === 0 ? (
-            <div style="font-size:13.5px;color:var(--muted)">还没有收录。</div>
-          ) : (
-            list.map((i) => (
-              <div class="architem">
-                <div class="t">{i.data.title}</div>
-                <div class="n">
-                  <FormattedDate date={i.data.date} />
-                  {i.data.description && ` · ${i.data.description}`}
-                  {i.data.url && (
-                    <span>{' · '}<a href={i.data.url} target="_blank" rel="noopener">链接 →</a></span>
-                  )}
-                </div>
-              </div>
-            ))
-          )}
-          {byType(t.slug).length > 5 && (
-            <a class="more" href={`${base}archive/${t.slug}/`}>查看全部 →</a>
-          )}
-        </div>
-      );
-    })}
+    <div style="font-size:13px;color:var(--muted);margin:8px 0 26px">思想来源库与日常收藏。</div>
+    <div class="archgrid">
+      {ARCHIVE_TYPES.map((t) => (
+        <a class="archcard" href={`${base}archive/${t.slug}/`}>
+          <span class="archthumb"><img src={`${base}archive/${t.slug}.webp`} alt={t.en} loading="lazy" /></span>
+          <span class="archen">{t.en}</span>
+          <span class="archcn">{t.cn}</span>
+        </a>
+      ))}
+    </div>
   </div>
 </Base>
+
+<style>
+  .archgrid { display:grid; grid-template-columns:1fr 1fr; gap:28px 24px; }
+  @media (max-width:640px) { .archgrid { grid-template-columns:1fr; } }
+  .archcard { display:block; text-decoration:none; color:inherit; }
+  .archthumb { display:block; aspect-ratio:4/3; overflow:hidden; background:#F1EFE9; }
+  .archthumb img { width:100%; height:100%; object-fit:cover; display:block; transition:transform .35s ease; }
+  .archcard:hover .archthumb img { transform:scale(1.025); }
+  .archen { display:block; font-size:19px; letter-spacing:.08em; margin:12px 0 5px; }
+  .archcard:hover .archen { text-decoration:underline; text-underline-offset:4px; }
+  .archcn { display:block; font-size:13px; color:var(--muted); line-height:1.8; }
+</style>
