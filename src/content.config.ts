@@ -35,7 +35,7 @@ const archiveItems = defineCollection({
   loader: glob({ base: './src/content-gen/archive', pattern: '**/*.md' }),
   schema: z.object({
     title: z.string(),
-    type: z.enum(['reading', 'watching', 'sound', 'places', 'objects']),
+    type: z.enum(['reading', 'watching', 'sound', 'places', 'objects', 'food']),
     description: z.string().default(''),
     url: z.string().optional(), // 购买链接 / 歌曲链接 / 地图链接
     date: z.coerce.date(),
@@ -43,4 +43,11 @@ const archiveItems = defineCollection({
   }),
 });
 
-export const collections = { articles, episodes, archive: archiveItems };
+const aboutPage = defineCollection({
+  loader: glob({ base: './src/content-gen/about', pattern: '**/*.md' }),
+  schema: z.object({
+    title: z.string().default(''),
+  }),
+});
+
+export const collections = { articles, episodes, archive: archiveItems, about: aboutPage };
