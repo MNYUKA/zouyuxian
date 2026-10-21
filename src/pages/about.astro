@@ -6,16 +6,22 @@ import { getCollection, render } from 'astro:content';
 // 没有已发布的 About 行时，只显示问候语，不开天窗。
 const aboutEntries = await getCollection('about');
 let NotionBody = null;
+let heading = '你好，我是 Yuka。';
+let showHeading = true;
 if (aboutEntries.length > 0) {
-  const rendered = await render(aboutEntries[0]);
+  const entry = aboutEntries[0];
+  const rendered = await render(entry);
   NotionBody = rendered.Content;
+  // 抬头跟着 Notion 标题走：标题写什么就显示什么，清空则不显示抬头
+  heading = (entry.data.title || '').trim();
+  showHeading = heading.length > 0;
 }
 ---
 
 <Base title="About" current="/about/">
   <div class="narrow" style="padding-top:26px">
     <div style="font-size:12px;letter-spacing:.18em;color:var(--muted);margin-bottom:14px">ABOUT / YUKA</div>
-    <h1 style="font-family:var(--serif);font-size:34px;font-weight:400;letter-spacing:.04em;margin:0">你好，我是 Yuka。</h1>
+    {showHeading && <h1 style="font-family:var(--serif);font-size:34px;font-weight:400;letter-spacing:.04em;margin:0">{heading}</h1>}
     <div class="bio" style="margin-top:26px">
       {NotionBody && <NotionBody />}
       <p class="about-contact">想对我说点什么？<button type="button" class="contact-open">Contact Me</button></p>
