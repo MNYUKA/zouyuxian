@@ -57,7 +57,7 @@ const FORMAT_MAP = {
   'reading-note': 'reading-note', '阅读笔记': 'reading-note',
   'study-log': 'study-log', '学习记录': 'study-log',
 };
-const ARCHIVE_TYPE_MAP = { reading: 'reading', watching: 'watching', sound: 'sound', places: 'places', objects: 'objects' };
+const ARCHIVE_TYPE_MAP = { reading: 'reading', watching: 'watching', sound: 'sound', places: 'places', objects: 'objects', food: 'food' };
 const LANG_MAP = {
   'zh': 'zh', '中文': 'zh', '简体中文': 'zh', 'chinese': 'zh',
   'en': 'en', '英文': 'en', 'english': 'en',
