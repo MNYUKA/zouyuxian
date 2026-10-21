@@ -1,25 +1,27 @@
 ---
 import Base from '../layouts/Base.astro';
+import { getCollection, render } from 'astro:content';
+
+// About 正文来自 Notion（Section=About 的一行，同步到 content-gen/about/index.md）
+// 没有已发布的 About 行时，只显示问候语，不开天窗。
+const aboutEntries = await getCollection('about');
+let NotionBody = null;
+if (aboutEntries.length > 0) {
+  const rendered = await render(aboutEntries[0]);
+  NotionBody = rendered.Content;
+}
 ---
 
 <Base title="About" current="/about/">
   <div class="narrow" style="padding-top:26px">
     <div style="font-size:12px;letter-spacing:.18em;color:var(--muted);margin-bottom:14px">ABOUT / YUKA</div>
     <h1 style="font-family:var(--serif);font-size:34px;font-weight:400;letter-spacing:.04em;margin:0">你好，我是 Yuka。</h1>
-    <div style="font-size:14px;color:var(--muted);margin:10px 0 28px">持续理解世界，慢慢生成想法。</div>
-    <div class="aboutbody">
-      <p>我用阅读、写作、语言学习和对现实生活的观察，慢慢整理自己对世界的理解。</p>
-      <p>这里有经过整理的文章，也有仍在探索的问题；有播客、学习记录，也有值得留下的书、影像、声音和地方。</p>
-      <p>我希望把自己的思考与实践真实地留下来，既供自己回看，也给可能遇到相似问题的人一点参考。</p>
+    <div class="bio" style="margin-top:26px">
+      {NotionBody && <NotionBody />}
+      <p class="about-contact">想对我说点什么？<button type="button" class="contact-open">Contact Me</button></p>
     </div>
-    <div style="font-family:var(--serif);font-style:italic;font-size:15px;color:var(--muted);margin-top:30px">Writing · Listening · Learning · Everyday Discoveries</div>
   </div>
+  <style>
+    .bio p { font-family: var(--serif); font-size: 17px; line-height: 1.95; margin: 0 0 1.2em; }
+  </style>
 </Base>
-
-<style>
-  .aboutbody p {
-    font-size:16px;
-    line-height:1.95;
-    margin:0 0 1.2em;
-  }
-</style>
