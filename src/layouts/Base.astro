@@ -51,8 +51,98 @@ const base = import.meta.env.BASE_URL;
   </main>
 
   <footer class="sitefoot">
-    <span class="brand">{SITE.title}</span>
-    <span>持续理解世界，慢慢生成想法。</span>
+    <span>© <span id="cf-year">2026</span> Yuka 的点心房</span>
+    <span class="foot-dot" aria-hidden="true">·</span>
+    <button type="button" class="contact-open foot-contact">Contact Me</button>
   </footer>
+
+  <div id="contact-modal" hidden>
+    <div class="cf-overlay"></div>
+    <div class="cf-panel" role="dialog" aria-modal="true" aria-label="Contact Me">
+      <button type="button" class="cf-close" aria-label="Close">×</button>
+      <div id="cf-body">
+        <h2>Contact Me</h2>
+        <p class="cf-hint">Something on your mind? Write it down. I may not reply to every message, but I read them all.</p>
+        <form id="contact-form" action="https://formspree.io/f/xppqgepg" method="POST">
+          <label for="cf-name">Name <span class="cf-opt">(optional)</span></label>
+          <input id="cf-name" type="text" name="name" placeholder="What should I call you" autocomplete="name" />
+          <label for="cf-email">Email <span class="cf-opt">(required, for my reply)</span></label>
+          <input id="cf-email" type="email" name="email" placeholder="your@email.com" autocomplete="email" required />
+          <label for="cf-message">Message <span class="cf-opt">(required)</span></label>
+          <textarea id="cf-message" name="message" placeholder="Write in any language…" required></textarea>
+          <input type="text" name="_gotcha" class="cf-gotcha" tabindex="-1" autocomplete="off" aria-hidden="true" />
+          <input type="hidden" name="_subject" value="点心房留言 · New message from the website" />
+          <button id="cf-send" type="submit">Send</button>
+          <p id="cf-status" class="cf-status" role="status"></p>
+        </form>
+        <p class="cf-privacy">Your email is only used for replies and never made public.<br />My contact info is not shown here.</p>
+      </div>
+      <div id="cf-done" hidden>
+        <h2>Message sent</h2>
+        <p class="cf-hint">Thank you for writing. It is on its way to my inbox.</p>
+        <button type="button" class="cf-done-btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var y = document.getElementById('cf-year');
+      if (y) y.textContent = new Date().getFullYear();
+      var modal = document.getElementById('contact-modal');
+      if (!modal) return;
+      var body = document.getElementById('cf-body');
+      var done = document.getElementById('cf-done');
+      var form = document.getElementById('contact-form');
+      var status = document.getElementById('cf-status');
+      var sendBtn = document.getElementById('cf-send');
+      function openModal() {
+        modal.hidden = false;
+        document.body.style.overflow = 'hidden';
+        var first = document.getElementById('cf-name');
+        if (first) setTimeout(function () { first.focus(); }, 30);
+      }
+      function closeModal() {
+        modal.hidden = true;
+        document.body.style.overflow = '';
+        body.hidden = false;
+        done.hidden = true;
+        status.textContent = '';
+      }
+      document.querySelectorAll('.contact-open').forEach(function (b) {
+        b.addEventListener('click', openModal);
+      });
+      modal.querySelector('.cf-overlay').addEventListener('click', closeModal);
+      modal.querySelector('.cf-close').addEventListener('click', closeModal);
+      modal.querySelector('.cf-done-btn').addEventListener('click', closeModal);
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !modal.hidden) closeModal();
+      });
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        sendBtn.disabled = true;
+        sendBtn.textContent = 'Sending…';
+        status.textContent = '';
+        fetch(form.action, {
+          method: 'POST',
+          body: new FormData(form),
+          headers: { 'Accept': 'application/json' }
+        }).then(function (res) {
+          if (res.ok) {
+            form.reset();
+            body.hidden = true;
+            done.hidden = false;
+          } else {
+            status.textContent = 'Something went wrong. Please try again.';
+          }
+        }).catch(function () {
+          status.textContent = 'Network error. Please try again later.';
+        }).finally(function () {
+          sendBtn.disabled = false;
+          sendBtn.textContent = 'Send';
+        });
+      });
+    })();
+  </script>
 </body>
 </html>
