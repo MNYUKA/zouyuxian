@@ -45,11 +45,12 @@ export const EPISODE_FORMATS = ['精讲书', '新闻感想', '情感观察'] as 
 
 // Archive 分类
 export const ARCHIVE_TYPES = [
-  { slug: 'reading', en: 'Reading', cn: '启发过的书籍、博客与文章。' },
+  { slug: 'reading', en: 'Reading', cn: '重读过的书籍、博客与文章。' },
   { slug: 'watching', en: 'Watching', cn: '喜欢过的电影、电视剧、动画、综艺、纪录片、演讲、线上课程等视频。' },
   { slug: 'sound', en: 'Sound', cn: '陪伴过的歌曲与声音。' },
   { slug: 'places', en: 'Places', cn: '流连过的自然风景、城市、建筑与一些不知名之地。' },
   { slug: 'objects', en: 'Objects', cn: '爱用的日常物品与工具。' },
+  { slug: 'food', en: 'Food', cn: '吃过的美食、零食与好味道。' },
 ] as const;
 
 // 内容语言
