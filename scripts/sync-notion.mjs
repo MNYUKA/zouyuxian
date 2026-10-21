@@ -186,6 +186,15 @@ async function buildArchive(page, slug) {
   };
 }
 
+// About 页正文（Section=About 的那一行；只取一行，文件名固定 index.md）
+async function buildAbout(page) {
+  const body = await bodyMarkdown(page, 'about', 'about');
+  return {
+    dir: 'about', file: 'index.md',
+    content: frontmatter({ title: titleOf(page) }) + '\n' + body,
+  };
+}
+
 // ---------- 主流程 ----------
 // v5 API：先解析 database 的 data source（兼容单/多个），再逐个查询，page.id 去重
 async function resolveDataSourceIds() {
@@ -217,10 +226,10 @@ async function queryDataSource(dataSourceId) {
 
 async function main() {
   await fs.mkdir(IMG_DIR, { recursive: true });
-  for (const d of ['writing', 'listening', 'archive']) await fs.mkdir(path.join(GEN, d), { recursive: true });
+  for (const d of ['writing', 'listening', 'archive', 'about']) await fs.mkdir(path.join(GEN, d), { recursive: true });
 
-  const kept = { writing: new Set(), listening: new Set(), archive: new Set() };
-  const counts = { writing: 0, listening: 0, archive: 0, skipped: 0 };
+  const kept = { writing: new Set(), listening: new Set(), archive: new Set(), about: new Set() };
+  const counts = { writing: 0, listening: 0, archive: 0, about: 0, skipped: 0 };
   const seen = new Set();
   const dataSourceIds = await resolveDataSourceIds();
   console.log(`📚 找到 ${dataSourceIds.length} 个数据源，开始同步…`);
@@ -252,6 +261,10 @@ async function main() {
         if (section === 'writing') out = await buildWriting(page, slug);
         else if (section === 'listening') out = await buildListening(page, slug);
         else if (section === 'archive') out = await buildArchive(page, slug);
+        else if (section === 'about') {
+          if (kept.about.has('index.md')) { counts.skipped++; warn(`多行 About 已发布，只取发布日期最新的一行（跳过：「${titleOf(page).slice(0, 24)}」）`); continue; }
+          out = await buildAbout(page);
+        }
         else { counts.skipped++; warn(`未知 Section「${selectOf(page, 'Section') || '(空)'}」，已跳过（页：「${titleOf(page).slice(0, 24)}」）`); continue; }
         if (!out) { counts.skipped++; continue; }
         await fs.writeFile(path.join(GEN, out.dir, out.file), out.content, 'utf8');
@@ -264,7 +277,7 @@ async function main() {
   } // end for page
 
   // prune：删掉已取消发布/删除的行对应的旧文件
-  for (const d of ['writing', 'listening', 'archive']) {
+  for (const d of ['writing', 'listening', 'archive', 'about']) {
     const dir = path.join(GEN, d);
     let files = [];
     try { files = (await fs.readdir(dir)).filter(f => f.endsWith('.md')); } catch { /* ignore */ }
@@ -273,7 +286,7 @@ async function main() {
     }
   }
 
-  console.log(`\n✅ 同步完成：Writing ${counts.writing} / Listening ${counts.listening} / Archive ${counts.archive}，跳过 ${counts.skipped}`);
+  console.log(`\n✅ 同步完成：Writing ${counts.writing} / Listening ${counts.listening} / Archive ${counts.archive} / About ${counts.about}，跳过 ${counts.skipped}`);
   if (warnings.length) console.log(`\n共 ${warnings.length} 条警告（integration 为只读，字段问题请在 Notion 里手动修正）：`);
 }
 
