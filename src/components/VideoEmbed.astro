@@ -1,0 +1,28 @@
+---
+// Screen 视频嵌入：按链接形态选择播放器
+// - youtube / vimeo / archive.org embed 链接 → iframe
+// - 直链视频文件（mp4/webm/mov/m4v）→ <video>
+// - 其他 → 外部观看链接
+interface Props {
+  url: string;
+  title?: string;
+  poster?: string;
+}
+const { url, title = '', poster } = Astro.props;
+const isEmbed = /youtube\.com\/embed|youtube-nocookie\.com\/embed|player\.vimeo\.com|archive\.org\/embed/.test(url);
+const isFile = /\.(mp4|webm|mov|m4v)(\?.*)?$/i.test(url);
+const ytWatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{6,})/);
+const embedUrl = isEmbed ? url : ytWatch ? `https://www.youtube-nocookie.com/embed/${ytWatch[1]}` : null;
+---
+
+{embedUrl ? (
+  <div class="videowrap">
+    <iframe src={embedUrl} title={title} loading="lazy" allowfullscreen allow="accelerometer; encrypted-media; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+  </div>
+) : isFile ? (
+  <div class="videowrap">
+    <video controls preload="none" src={url} poster={poster}></video>
+  </div>
+) : (
+  <a class="videolink" href={url} target="_blank" rel="noopener">观看视频 →</a>
+)}

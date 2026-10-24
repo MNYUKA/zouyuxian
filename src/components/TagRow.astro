@@ -1,0 +1,13 @@
+---
+// Tags 小签行（文章 / 单集 / 视频 / 照片详情页共用）
+interface Props {
+  tags?: string[];
+}
+const { tags } = Astro.props;
+---
+
+{tags && tags.length > 0 && (
+  <div class="tagrow">
+    {tags.map((t) => <span class="tagchip">{t}</span>)}
+  </div>
+)}
