@@ -11,9 +11,10 @@ const articles = defineCollection({
     description: z.string().default(''),
     pubDate: z.coerce.date(),
     updatedDate: z.coerce.date().optional(),
-    category: z.enum(['self', 'world', 'learning', 'others']),
-    format: z.enum(['short-note', 'essay', 'reading-note', 'study-log']).optional(),
+    category: z.enum(['self', 'people', 'nature', 'world', 'learning', 'others']),
+    format: z.enum(['short-note', 'essay', 'reading-note', 'study-log', 'record']).optional(),
     language: z.string().default('zh'),
+    tags: z.array(z.string()).optional(),
     // slug 即文件名，不存 frontmatter
   }),
 });
@@ -24,10 +25,11 @@ const episodes = defineCollection({
     title: z.string(),
     description: z.string().default(''),
     pubDate: z.coerce.date(),
-    format: z.string().optional(), // 精讲书 / 新闻感想 / 情感观察
+    format: z.string().optional(), // Book Talk / Reading Aloud 等（与 Notion 选项同名）
     audioUrl: z.string().url().optional(),
     duration: z.string().optional(),
     language: z.string().default('zh'),
+    tags: z.array(z.string()).optional(),
   }),
 });
 
@@ -40,6 +42,33 @@ const archiveItems = defineCollection({
     url: z.string().optional(), // 购买链接 / 歌曲链接 / 地图链接
     date: z.coerce.date(),
     image: z.string().optional(),
+    form: z.string().optional(), // 形式（子分类）：Book / Song / Dish 等，与 Notion 的 Format 选项同名
+    tags: z.array(z.string()).optional(),
+  }),
+});
+
+const screenItems = defineCollection({
+  loader: glob({ base: './src/content-gen/screen', pattern: '**/*.md' }),
+  schema: z.object({
+    title: z.string(),
+    description: z.string().default(''),
+    pubDate: z.coerce.date(),
+    format: z.string().optional(), // Video Poem / Explainer / Life Clip / Reading Video
+    videoUrl: z.string().optional(),
+    image: z.string().optional(), // 封面图（Notion 的 Cover Image URL）
+    language: z.string().default('zh'),
+    tags: z.array(z.string()).optional(),
+  }),
+});
+
+const photoSets = defineCollection({
+  loader: glob({ base: './src/content-gen/photos', pattern: '**/*.md' }),
+  schema: z.object({
+    title: z.string(),
+    description: z.string().default(''),
+    pubDate: z.coerce.date(), // 拍摄日期
+    language: z.string().default('zh'),
+    tags: z.array(z.string()).optional(),
   }),
 });
 
@@ -50,4 +79,4 @@ const aboutPage = defineCollection({
   }),
 });
 
-export const collections = { articles, episodes, archive: archiveItems, about: aboutPage };
+export const collections = { articles, episodes, archive: archiveItems, about: aboutPage, screen: screenItems, photos: photoSets };
