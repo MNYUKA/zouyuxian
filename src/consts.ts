@@ -10,11 +10,9 @@ export const SITE = {
 };
 
 export const NAV = [
-  { href: '/', label: 'Home' },
   { href: '/writing/', label: 'Writing' },
   { href: '/listening/', label: 'Listening' },
   { href: '/screen/', label: 'Screen' },
-  { href: '/photos/', label: 'Photos' },
   { href: '/archive/', label: 'Archive' },
   { href: '/about/', label: 'About' },
   { href: '/search/', label: '🔍' },
