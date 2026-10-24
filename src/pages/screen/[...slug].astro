@@ -1,0 +1,37 @@
+---
+import Base from '../../layouts/Base.astro';
+import FormattedDate from '../../components/FormattedDate.astro';
+import TagRow from '../../components/TagRow.astro';
+import VideoEmbed from '../../components/VideoEmbed.astro';
+import { getCollection, render } from 'astro:content';
+
+export async function getStaticPaths() {
+  const videos = await getCollection('screen');
+  return videos.map((entry) => ({
+    params: { slug: entry.id.replace(/\.md$/, '') },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+const base = import.meta.env.BASE_URL;
+---
+
+<Base title={entry.data.title} description={entry.data.description} current="/screen/">
+  <div class="narrow article" style="padding-top:26px">
+    <div style="font-size:13px;margin-bottom:10px;font-family:var(--sans)">
+      <a href={`${base}screen/`} style="color:var(--muted)">← Screen</a>
+    </div>
+    <h1>{entry.data.title}</h1>
+    <div class="meta">
+      <FormattedDate date={entry.data.pubDate} />
+      {entry.data.format && ` · ${entry.data.format}`}
+      <TagRow tags={entry.data.tags} />
+    </div>
+    {entry.data.videoUrl && <VideoEmbed url={entry.data.videoUrl} title={entry.data.title} poster={entry.data.image} />}
+    <div class="body" style="margin-top:26px">
+      <Content />
+    </div>
+  </div>
+</Base>

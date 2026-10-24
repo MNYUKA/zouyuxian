@@ -1,0 +1,32 @@
+---
+import Base from '../../layouts/Base.astro';
+import FormattedDate from '../../components/FormattedDate.astro';
+import VideoEmbed from '../../components/VideoEmbed.astro';
+import { getCollection } from 'astro:content';
+
+const base = import.meta.env.BASE_URL;
+const videos = (await getCollection('screen')).sort(
+  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
+);
+const slugOf = (id: string) => id.replace(/\.md$/, '');
+---
+
+<Base title="Screen" current="/screen/">
+  <div class="narrow" style="padding-top:26px">
+    <h1 style="font-family:var(--serif);font-size:34px;font-weight:400;letter-spacing:.06em;margin:0">Screen</h1>
+    <div style="font-size:13px;color:var(--muted);margin:6px 0 20px">
+      自己的视频作品。{videos.length > 0 ? `共 ${videos.length} 部，按发布时间倒序。` : '还没有发布视频。'}
+    </div>
+    {videos.map((v) => (
+      <div class="postitem">
+        <a href={`${base}screen/${slugOf(v.id)}/`}><h3>{v.data.title}</h3></a>
+        <div class="meta">
+          <FormattedDate date={v.data.pubDate} />
+          {v.data.format && ` · ${v.data.format}`}
+        </div>
+        {v.data.description && <p class="desc">{v.data.description}</p>}
+        {v.data.videoUrl && <VideoEmbed url={v.data.videoUrl} title={v.data.title} poster={v.data.image} />}
+      </div>
+    ))}
+  </div>
+</Base>
