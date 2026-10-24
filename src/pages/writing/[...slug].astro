@@ -1,6 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
 import FormattedDate from '../../components/FormattedDate.astro';
+import TagRow from '../../components/TagRow.astro';
 import { getCollection, render } from 'astro:content';
 import { WRITING_CATEGORIES, FORMAT_CN, LANG_CN } from '../../consts';
 
@@ -32,6 +33,7 @@ const catEn = WRITING_CATEGORIES.find((c) => c.slug === entry.data.category)?.en
       {entry.data.updatedDate && (
         <span>{` · 更新于 `}<FormattedDate date={entry.data.updatedDate} /></span>
       )}
+      <TagRow tags={entry.data.tags} />
     </div>
     <div class="body">
       <Content />
