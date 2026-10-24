@@ -49,11 +49,11 @@ const showFilter = items.length >= 8 && filterForms.length >= 2;
               <div class="n" style="font-size:13.5px;color:var(--muted);margin-top:6px;line-height:1.8">
                 <FormattedDate date={i.data.date} />
                 {i.data.description && <div style="margin-top:4px">{i.data.description}</div>}
+                <TagRow tags={i.data.tags} />
                 {i.data.url && (
-                  <div style="margin-top:4px"><a href={i.data.url} target="_blank" rel="noopener" style="border-bottom:1px solid var(--border)">链接 →</a></div>
+                  <div style="margin-top:8px"><a href={i.data.url} target="_blank" rel="noopener" style="border-bottom:1px solid var(--border)">链接 →</a></div>
                 )}
               </div>
-              <TagRow tags={i.data.tags} />
             </div>
           ))}
         </div>
