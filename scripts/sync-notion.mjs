@@ -3,7 +3,9 @@
 //
 // 从统一内容库 "Yuka Content Library" 拉取 Status = Published 的行，
 // 按 Section 分流：Writing → src/content-gen/writing，
-// Listening → src/content-gen/listening，Archive → src/content-gen/archive。
+// Listening → src/content-gen/listening，Archive → src/content-gen/archive，
+// Screen → src/content-gen/screen，Photos → src/content-gen/photos。
+// 兜底：Archive Type 有值且 Section 不是其他明确分区时，按 Archive 处理（不丢件）。
 // 正文转 Markdown（方案 B：git 即异地备份），图片下载到 public/notion-img。
 //
 // 铁律：只同步 Published；Draft / Unlisted 永不进仓库。
@@ -30,7 +32,7 @@ const notion = new Client({ auth: TOKEN });
 const n2m = new NotionToMarkdown({ notionClient: notion });
 
 const SLUG_RE = /^[a-z0-9][a-z0-9-]*$/;
-const RESERVED = new Set(['self', 'world', 'learning', 'others', 'reading', 'watching', 'sound', 'places', 'objects']);
+const RESERVED = new Set(['self', 'world', 'learning', 'others', 'people', 'nature', 'reading', 'watching', 'sound', 'places', 'objects', 'food', 'screen', 'photos']);
 const warnings = [];
 const warn = (m) => { if (!warnings.includes(m)) warnings.push(m); console.warn('⚠️ ' + m); };
 
@@ -45,17 +47,40 @@ const textOf = (page, name) => {
   return '';
 };
 const selectOf = (page, name) => prop(page, name)?.select?.name?.trim() || '';
+const multiOf = (page, name) => prop(page, name)?.multi_select?.map(o => o.name?.trim()).filter(Boolean) || [];
+const tagsOf = (page) => multiOf(page, 'Tags');
 const urlOf = (page, name) => prop(page, name)?.url?.trim() || '';
 const dateOf = (page, name) => prop(page, name)?.date?.start || '';
 const norm = (s) => (s || '').trim().toLowerCase();
 
 // ---------- 映射表 ----------
-const CATEGORY_MAP = { self: 'self', world: 'world', learning: 'learning', others: 'others' };
+const CATEGORY_MAP = { self: 'self', world: 'world', learning: 'learning', others: 'others', people: 'people', nature: 'nature' };
 const FORMAT_MAP = {
-  'essay': 'essay', '随笔': 'essay',
-  'short-note': 'short-note', '短思考': 'short-note',
-  'reading-note': 'reading-note', '阅读笔记': 'reading-note',
-  'study-log': 'study-log', '学习记录': 'study-log',
+  'essay': 'essay', '随笔': 'essay', 'deep essay': 'essay',
+  'short-note': 'short-note', '短思考': 'short-note', 'short thought': 'short-note',
+  'reading-note': 'reading-note', '阅读笔记': 'reading-note', 'reading note': 'reading-note',
+  'study-log': 'study-log', '学习记录': 'study-log', 'learning log': 'study-log',
+  'record': 'record', '记录': 'record',
+};
+// 播客单集形式（Notion 英文选项 → 显示名；含中文别名）
+const LISTENING_FORMAT_MAP = {
+  'book talk': 'Book Talk', '精讲书': 'Book Talk',
+  'news reflection': 'News Reflection', '新闻感想': 'News Reflection',
+  'emotional observation': 'Emotional Observation', '情感观察': 'Emotional Observation',
+  'conversation': 'Conversation', '对话': 'Conversation',
+  'collection note': 'Collection Note', '收藏笔记': 'Collection Note',
+  'reading aloud': 'Reading Aloud', '朗读': 'Reading Aloud',
+};
+// Archive 形式（子分类）：Notion Format 选项 → 显示名
+const ARCHIVE_FORM_MAP = {
+  'book': 'Book', 'blog': 'Blog', 'article': 'Article',
+  'movie': 'Movie', 'tv series': 'TV Series', 'anime': 'Anime', 'documentary': 'Documentary', 'variety show': 'Variety Show',
+  'song': 'Song', 'playlist': 'Playlist', 'podcast': 'Podcast', 'audiobook': 'Audiobook', 'other sound': 'Other Sound',
+  'dish': 'Dish', 'snack': 'Snack', 'dessert': 'Dessert', 'drink': 'Drink', 'fruit': 'Fruit', 'specialty': 'Specialty', 'pantry': 'Pantry',
+};
+// Screen 视频形式
+const SCREEN_FORMAT_MAP = {
+  'video poem': 'Video Poem', 'explainer': 'Explainer', 'life clip': 'Life Clip', 'reading video': 'Reading Video',
 };
 const ARCHIVE_TYPE_MAP = { reading: 'reading', watching: 'watching', sound: 'sound', places: 'places', objects: 'objects', food: 'food' };
 const LANG_MAP = {
@@ -147,25 +172,28 @@ async function buildWriting(page, slug) {
   const format = FORMAT_MAP[norm(fmtRaw)];
   if (fmtRaw && !format) warn(`未知 Format「${fmtRaw}」，已忽略（页：「${titleOf(page).slice(0, 24)}」）`);
   const body = await bodyMarkdown(page, slug, 'writing');
+  const tags = tagsOf(page);
   return {
     dir: 'writing', file: `${slug}.md`,
     content: frontmatter({
       title: titleOf(page), description: textOf(page, 'Description'),
       pubDate: pubDateOf(page), category, format, language: langOf(page),
+      tags: tags.length ? tags : undefined,
     }) + '\n' + body,
   };
 }
 async function buildListening(page, slug) {
   const fmtRaw = selectOf(page, 'Format');
-  const format = FORMAT_MAP[norm(fmtRaw)];
+  const format = LISTENING_FORMAT_MAP[norm(fmtRaw)];
   if (fmtRaw && !format) warn(`未知 Format「${fmtRaw}」，已忽略（页：「${titleOf(page).slice(0, 24)}」）`);
   const body = await bodyMarkdown(page, slug, 'listening');
+  const tags = tagsOf(page);
   return {
     dir: 'listening', file: `${slug}.md`,
     content: frontmatter({
       title: titleOf(page), description: textOf(page, 'Description'),
       pubDate: pubDateOf(page), format, audioUrl: urlOf(page, 'Audio URL') || undefined,
-      language: langOf(page),
+      language: langOf(page), tags: tags.length ? tags : undefined,
     }) + '\n' + body,
   };
 }
@@ -175,13 +203,48 @@ async function buildArchive(page, slug) {
   if (!type) { warn(`Archive Type 缺失/未知「${typeRaw || '(空)'}」，已跳过（页：「${titleOf(page).slice(0, 24)}」）`); return null; }
   const coverUrl = urlOf(page, 'Cover Image URL');
   const image = coverUrl ? await downloadImage(coverUrl, `${slug}-cover`) : undefined;
+  const fmtRaw = selectOf(page, 'Format');
+  const form = ARCHIVE_FORM_MAP[norm(fmtRaw)];
+  if (fmtRaw && !form) warn(`未知 Archive Format「${fmtRaw}」，已忽略（页：「${titleOf(page).slice(0, 24)}」）`);
   const body = await bodyMarkdown(page, slug, 'archive');
+  const tags = tagsOf(page);
   return {
     dir: 'archive', file: `${slug}.md`,
     content: frontmatter({
       title: titleOf(page), type, description: textOf(page, 'Description'),
       url: urlOf(page, 'Reference URL') || undefined,
-      date: pubDateOf(page), image,
+      date: pubDateOf(page), image, form,
+      tags: tags.length ? tags : undefined,
+    }) + '\n' + body,
+  };
+}
+async function buildScreen(page, slug) {
+  const fmtRaw = selectOf(page, 'Format');
+  const format = SCREEN_FORMAT_MAP[norm(fmtRaw)];
+  if (fmtRaw && !format) warn(`未知 Screen Format「${fmtRaw}」，已忽略（页：「${titleOf(page).slice(0, 24)}」）`);
+  const coverUrl = urlOf(page, 'Cover Image URL');
+  const image = coverUrl ? await downloadImage(coverUrl, `${slug}-cover`) : undefined;
+  const body = await bodyMarkdown(page, slug, 'screen');
+  const tags = tagsOf(page);
+  return {
+    dir: 'screen', file: `${slug}.md`,
+    content: frontmatter({
+      title: titleOf(page), description: textOf(page, 'Description'),
+      pubDate: pubDateOf(page), format,
+      videoUrl: urlOf(page, 'Video URL') || undefined, image,
+      language: langOf(page), tags: tags.length ? tags : undefined,
+    }) + '\n' + body,
+  };
+}
+async function buildPhotos(page, slug) {
+  const body = await bodyMarkdown(page, slug, 'photos');
+  const tags = tagsOf(page);
+  return {
+    dir: 'photos', file: `${slug}.md`,
+    content: frontmatter({
+      title: titleOf(page), description: textOf(page, 'Description'),
+      pubDate: pubDateOf(page), language: langOf(page),
+      tags: tags.length ? tags : undefined,
     }) + '\n' + body,
   };
 }
@@ -226,10 +289,10 @@ async function queryDataSource(dataSourceId) {
 
 async function main() {
   await fs.mkdir(IMG_DIR, { recursive: true });
-  for (const d of ['writing', 'listening', 'archive', 'about']) await fs.mkdir(path.join(GEN, d), { recursive: true });
+  for (const d of ['writing', 'listening', 'archive', 'about', 'screen', 'photos']) await fs.mkdir(path.join(GEN, d), { recursive: true });
 
-  const kept = { writing: new Set(), listening: new Set(), archive: new Set(), about: new Set() };
-  const counts = { writing: 0, listening: 0, archive: 0, about: 0, skipped: 0 };
+  const kept = { writing: new Set(), listening: new Set(), archive: new Set(), about: new Set(), screen: new Set(), photos: new Set() };
+  const counts = { writing: 0, listening: 0, archive: 0, about: 0, screen: 0, photos: 0, skipped: 0 };
   const seen = new Set();
   const dataSourceIds = await resolveDataSourceIds();
   console.log(`📚 找到 ${dataSourceIds.length} 个数据源，开始同步…`);
@@ -258,9 +321,14 @@ async function main() {
         if (isFuture(pubDate)) { counts.skipped++; warn(`发布日期在未来（${pubDate.slice(0, 10)}），已跳过（页：「${titleOf(page).slice(0, 24)}」）`); continue; }
         const slug = slugFor(page);
         let out = null;
+        // 兜底：Archive Type 有合法值、且 Section 不是其他明确分区时，按收藏处理（Section 忘选/选错不丢件）
+        const hasArchiveType = !!ARCHIVE_TYPE_MAP[norm(selectOf(page, 'Archive Type'))];
+        const knownSection = ['writing', 'listening', 'about', 'screen', 'photos'].includes(section);
         if (section === 'writing') out = await buildWriting(page, slug);
         else if (section === 'listening') out = await buildListening(page, slug);
-        else if (section === 'archive') out = await buildArchive(page, slug);
+        else if (section === 'screen') out = await buildScreen(page, slug);
+        else if (section === 'photos') out = await buildPhotos(page, slug);
+        else if (section === 'archive' || (hasArchiveType && !knownSection)) out = await buildArchive(page, slug);
         else if (section === 'about') {
           if (kept.about.has('index.md')) { counts.skipped++; warn(`多行 About 已发布，只取发布日期最新的一行（跳过：「${titleOf(page).slice(0, 24)}」）`); continue; }
           out = await buildAbout(page);
@@ -277,7 +345,7 @@ async function main() {
   } // end for page
 
   // prune：删掉已取消发布/删除的行对应的旧文件
-  for (const d of ['writing', 'listening', 'archive', 'about']) {
+  for (const d of ['writing', 'listening', 'archive', 'about', 'screen', 'photos']) {
     const dir = path.join(GEN, d);
     let files = [];
     try { files = (await fs.readdir(dir)).filter(f => f.endsWith('.md')); } catch { /* ignore */ }
@@ -286,7 +354,7 @@ async function main() {
     }
   }
 
-  console.log(`\n✅ 同步完成：Writing ${counts.writing} / Listening ${counts.listening} / Archive ${counts.archive} / About ${counts.about}，跳过 ${counts.skipped}`);
+  console.log(`\n✅ 同步完成：Writing ${counts.writing} / Listening ${counts.listening} / Archive ${counts.archive} / Screen ${counts.screen} / Photos ${counts.photos} / About ${counts.about}，跳过 ${counts.skipped}`);
   if (warnings.length) console.log(`\n共 ${warnings.length} 条警告（integration 为只读，字段问题请在 Notion 里手动修正）：`);
 }
 
