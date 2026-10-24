@@ -1,6 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import FormattedDate from '../components/FormattedDate.astro';
+import VideoEmbed from '../components/VideoEmbed.astro';
 import { getCollection } from 'astro:content';
 import { SITE, FORMAT_CN } from '../consts';
 
@@ -15,9 +16,13 @@ const episodes = (await getCollection('episodes')).sort(
 const archiveItems = (await getCollection('archive')).sort(
   (a, b) => b.data.date.valueOf() - a.data.date.valueOf()
 );
+const screenItems = (await getCollection('screen')).sort(
+  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
+);
 
 const latestArticles = articles.slice(0, 5);
 const latestEpisode = episodes[0];
+const latestScreen = screenItems[0];
 const latestArchive = archiveItems[0];
 
 const slugOf = (id: string) => id.replace(/\.md$/, '');
@@ -65,6 +70,22 @@ const slugOf = (id: string) => id.replace(/\.md$/, '');
             <audio controls preload="none" src={latestEpisode.data.audioUrl}></audio>
           </div>
         )}
+      </div>
+    </section>
+  )}
+
+  {latestScreen && (
+    <section class="narrow" style="margin-top:56px">
+      <h2 class="secttl">最近的影像</h2>
+      <div class="secsub">最新的一支视频</div>
+      <div class="postitem">
+        <a href={`${base}screen/${slugOf(latestScreen.id)}/`}><h3>{latestScreen.data.title}</h3></a>
+        <div class="meta">
+          <FormattedDate date={latestScreen.data.pubDate} />
+          {latestScreen.data.format && ` · ${latestScreen.data.format}`}
+        </div>
+        {latestScreen.data.description && <p class="desc">{latestScreen.data.description}</p>}
+        {latestScreen.data.videoUrl && <VideoEmbed url={latestScreen.data.videoUrl} title={latestScreen.data.title} poster={latestScreen.data.image} />}
       </div>
     </section>
   )}
