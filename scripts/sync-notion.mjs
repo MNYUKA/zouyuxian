@@ -97,7 +97,7 @@ function slugFor(page) {
   const raw = textOf(page, 'Slug');
   if (validSlug(raw)) return raw;
   const d = (dateOf(page, 'Publish Date') || '').slice(0, 10).replaceAll('-', '');
-  const fb = `post-${d || 'nodate'}-${page.id.replaceAll('-', '').slice(0, 6)}`;
+  const fb = `post-${d || 'nodate'}-${page.id.replaceAll('-', '')}`;
   warn(`Slug 缺失/不合法（"${raw || '(空)'}"），已自动生成 ${fb}（页：「${titleOf(page).slice(0, 24)}」），请在 Notion 里补一个合规 Slug`);
   return fb;
 }
@@ -335,8 +335,18 @@ async function main() {
         }
         else { counts.skipped++; warn(`未知 Section「${selectOf(page, 'Section') || '(空)'}」，已跳过（页：「${titleOf(page).slice(0, 24)}」）`); continue; }
         if (!out) { counts.skipped++; continue; }
-        await fs.writeFile(path.join(GEN, out.dir, out.file), out.content, 'utf8');
-        kept[out.dir].add(out.file);
+        // 撞车兜底：同一次同步里已有同名文件时改存为 -2、-3…，绝不再互相覆盖
+        // （也兜住两行手填了同一个 Slug 的情况；About 多行已在前面拦下，不会走到这里）
+        let file = out.file;
+        if (kept[out.dir].has(file)) {
+          const base = file.replace(/\.md$/, '');
+          let n = 2;
+          while (kept[out.dir].has(`${base}-${n}.md`)) n++;
+          file = `${base}-${n}.md`;
+          warn(`文件名撞车（「${titleOf(page).slice(0, 24)}」与已写入的 ${out.file} 同名），已改存为 ${file}，请给这行补一个合规 Slug 以固定链接`);
+        }
+        await fs.writeFile(path.join(GEN, out.dir, file), out.content, 'utf8');
+        kept[out.dir].add(file);
         counts[out.dir]++;
       } catch (e) {
         counts.skipped++;
