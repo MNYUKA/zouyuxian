@@ -45,14 +45,11 @@ const showFilter = items.length >= 8 && filterForms.length >= 2;
         <div id="arch-list">
           {items.map((i) => (
             <div class="architem" data-form={i.data.form ?? ''} style="padding:14px 0;border-bottom:1px solid var(--border)">
-              <div class="t" style="font-size:17px">{i.data.title}{i.data.form && <span class="formtag">{i.data.form}</span>}</div>
+              <div class="t" style="font-size:17px">{i.data.url ? (<a class="titlelink" href={i.data.url} target="_blank" rel="noopener">{i.data.title}<span class="extmark">↗</span></a>) : (i.data.title)}{i.data.form && <span class="formtag">{i.data.form}</span>}</div>
               <div class="n" style="font-size:13.5px;color:var(--muted);margin-top:6px;line-height:1.8">
                 <FormattedDate date={i.data.date} />
                 {i.data.description && <div style="margin-top:4px">{i.data.description}</div>}
                 <TagRow tags={i.data.tags} />
-                {i.data.url && (
-                  <div style="margin-top:8px"><a href={i.data.url} target="_blank" rel="noopener" style="border-bottom:1px solid var(--border)">链接 →</a></div>
-                )}
               </div>
             </div>
           ))}
@@ -61,6 +58,13 @@ const showFilter = items.length >= 8 && filterForms.length >= 2;
     )}
   </div>
 </Base>
+
+<style>
+  .titlelink { color: inherit; text-decoration: none; }
+  .titlelink:hover { text-decoration: underline; text-underline-offset: 4px; }
+  .extmark { font-size: 12px; color: var(--muted); margin-left: 5px; vertical-align: 2px; }
+  .titlelink:hover .extmark { color: var(--text); }
+</style>
 
 <script>
   const bar = document.getElementById('archfilter');
