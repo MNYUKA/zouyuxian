@@ -1,0 +1,39 @@
+---
+import Base from '../../layouts/Base.astro';
+import FormattedDate from '../../components/FormattedDate.astro';
+import TagRow from '../../components/TagRow.astro';
+import { getCollection, render } from 'astro:content';
+
+export async function getStaticPaths() {
+  const sets = await getCollection('photos');
+  return sets.map((entry) => ({
+    params: { slug: entry.id.replace(/\.md$/, '') },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+const base = import.meta.env.BASE_URL;
+---
+
+<Base title={entry.data.title} description={entry.data.description} current="/photos/">
+  <div class="narrow article" style="padding-top:26px">
+    <div style="font-size:13px;margin-bottom:10px;font-family:var(--sans)">
+      <a href={`${base}photos/`} style="color:var(--muted)">← Photos</a>
+    </div>
+    <h1>{entry.data.title}</h1>
+    <div class="meta">
+      <FormattedDate date={entry.data.pubDate} />
+      <TagRow tags={entry.data.tags} />
+    </div>
+    {entry.data.description && <p style="font-size:15px;color:var(--muted);line-height:1.9;margin:0 0 10px">{entry.data.description}</p>}
+    <div class="body photobody">
+      <Content />
+    </div>
+  </div>
+</Base>
+
+<style>
+  .photobody img { display:block; margin:1.6em auto; }
+</style>
