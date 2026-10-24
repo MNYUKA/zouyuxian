@@ -1,8 +1,9 @@
 ---
 import Base from '../../layouts/Base.astro';
 import FormattedDate from '../../components/FormattedDate.astro';
+import TagRow from '../../components/TagRow.astro';
 import { getCollection } from 'astro:content';
-import { ARCHIVE_TYPES } from '../../consts';
+import { ARCHIVE_TYPES, ARCHIVE_FORMS } from '../../consts';
 
 export async function getStaticPaths() {
   return ARCHIVE_TYPES.map((t) => ({ params: { type: t.slug } }));
@@ -15,6 +16,13 @@ const base = import.meta.env.BASE_URL;
 const items = (await getCollection('archive'))
   .filter((i) => i.data.type === type)
   .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+// 形式筛选：条目 ≥ 8 且有 ≥ 2 种形式时才出现（攒够再分）
+const formOrder = ARCHIVE_FORMS[type] ?? [];
+const presentForms = formOrder.filter((f) => items.some((i) => i.data.form === f));
+const extraForms = [...new Set(items.map((i) => i.data.form).filter(Boolean))].filter((f) => !presentForms.includes(f as string)) as string[];
+const filterForms = [...presentForms, ...extraForms];
+const showFilter = items.length >= 8 && filterForms.length >= 2;
 ---
 
 <Base title={meta.en} current="/archive/">
@@ -27,18 +35,45 @@ const items = (await getCollection('archive'))
     {items.length === 0 ? (
       <p style="color:var(--muted)">还没有收录。</p>
     ) : (
-      items.map((i) => (
-        <div class="architem" style="padding:14px 0;border-bottom:1px solid var(--border)">
-          <div class="t" style="font-size:17px">{i.data.title}</div>
-          <div class="n" style="font-size:13.5px;color:var(--muted);margin-top:6px;line-height:1.8">
-            <FormattedDate date={i.data.date} />
-            {i.data.description && <div style="margin-top:4px">{i.data.description}</div>}
-            {i.data.url && (
-              <div style="margin-top:4px"><a href={i.data.url} target="_blank" rel="noopener" style="border-bottom:1px solid var(--border)">链接 →</a></div>
-            )}
+      <>
+        {showFilter && (
+          <div class="filterbar" id="archfilter">
+            <button class="on" data-form="all">全部</button>
+            {filterForms.map((f) => <button data-form={f}>{f}</button>)}
           </div>
+        )}
+        <div id="arch-list">
+          {items.map((i) => (
+            <div class="architem" data-form={i.data.form ?? ''} style="padding:14px 0;border-bottom:1px solid var(--border)">
+              <div class="t" style="font-size:17px">{i.data.title}{i.data.form && <span class="formtag">{i.data.form}</span>}</div>
+              <div class="n" style="font-size:13.5px;color:var(--muted);margin-top:6px;line-height:1.8">
+                <FormattedDate date={i.data.date} />
+                {i.data.description && <div style="margin-top:4px">{i.data.description}</div>}
+                {i.data.url && (
+                  <div style="margin-top:4px"><a href={i.data.url} target="_blank" rel="noopener" style="border-bottom:1px solid var(--border)">链接 →</a></div>
+                )}
+              </div>
+              <TagRow tags={i.data.tags} />
+            </div>
+          ))}
         </div>
-      ))
+      </>
     )}
   </div>
 </Base>
+
+<script>
+  const bar = document.getElementById('archfilter');
+  const items = Array.from(document.querySelectorAll('#arch-list .architem'));
+  bar?.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest('button');
+    if (!btn) return;
+    bar.querySelectorAll('button').forEach((b) => b.classList.remove('on'));
+    btn.classList.add('on');
+    const form = btn.dataset.form;
+    items.forEach((el) => {
+      const show = form === 'all' || (el as HTMLElement).dataset.form === form;
+      (el as HTMLElement).style.display = show ? '' : 'none';
+    });
+  });
+</script>
