@@ -5,7 +5,7 @@
 :root {
   --bg: #F4F4F2;
   --text: #1F1F1F;
-  --muted: #6A6A6A;
+  --muted: #5C5C5C;
   --border: #D8D8D6;
   --serif: "Noto Serif SC", "Songti SC", "STSong", "SimSun", serif;
   --sans: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
@@ -162,6 +162,35 @@ img { max-width: 100%; height: auto; }
   border: 1px solid var(--border); border-radius: 6px; padding: 16px;
 }
 .article .body code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: .88em; }
+
+/* 代码块跟随系统深浅色（配合 astro.config 的 shiki 双主题） */
+.astro-code { background-color: var(--shiki-light-bg); color: var(--shiki-light); }
+.astro-code span { color: var(--shiki-light); font-style: var(--shiki-light-font-style); font-weight: var(--shiki-light-font-weight); }
+@media (prefers-color-scheme: dark) {
+  .astro-code { background-color: var(--shiki-dark-bg); color: var(--shiki-dark); }
+  .astro-code span { color: var(--shiki-dark); font-style: var(--shiki-dark-font-style); font-weight: var(--shiki-dark-font-weight); }
+}
+
+/* 正文表格：补基础样式，窄屏整表横滑，不再把列挤碎 */
+.article .body table {
+  display: block; overflow-x: auto; max-width: 100%;
+  border-collapse: collapse; font-size: 15px; line-height: 1.7; margin: 1.6em 0;
+}
+.article .body th, .article .body td {
+  border: 1px solid var(--border); padding: 8px 12px;
+  text-align: left; white-space: nowrap; vertical-align: top;
+}
+.article .body th { font-weight: 700; background: color-mix(in srgb, var(--text) 4%, var(--bg)); }
+
+/* 搜索结果关键词高亮（原为浏览器默认荧光黄） */
+mark { background: #E9E2CB; color: inherit; padding: 0 2px; border-radius: 2px; }
+@media (prefers-color-scheme: dark) {
+  mark { background: rgba(233, 231, 224, .28); }
+}
+
+/* 元信息里的分类链接 */
+.meta a.catlink { color: var(--muted); border-bottom: 1px solid var(--border); padding-bottom: 1px; }
+.meta a.catlink:hover { color: var(--text); border-color: var(--text); }
 
 /* Essay 在桌面端首行缩进 2em（书卷气）；手机端改段间距 */
 @media (min-width: 641px) {
