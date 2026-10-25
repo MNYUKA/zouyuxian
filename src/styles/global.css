@@ -182,6 +182,18 @@ img { max-width: 100%; height: auto; }
 }
 .article .body th { font-weight: 700; background: color-mix(in srgb, var(--text) 4%, var(--bg)); }
 
+/* About 正文表格（标本卡）：与正文表格同款边框，但允许换行、不横滑，字体随 .bio 的宋体 */
+.bio table {
+  border-collapse: collapse; width: 100%;
+  font-family: var(--serif); font-size: 15.5px; line-height: 1.8; margin: 1.4em 0;
+}
+.bio th, .bio td {
+  border: 1px solid var(--border); padding: 8px 12px;
+  text-align: left; vertical-align: top;
+}
+.bio th { font-weight: 700; background: color-mix(in srgb, var(--text) 4%, var(--bg)); }
+.bio th:first-child, .bio td:first-child { white-space: nowrap; }
+
 /* 搜索结果关键词高亮（原为浏览器默认荧光黄） */
 mark { background: #E9E2CB; color: inherit; padding: 0 2px; border-radius: 2px; }
 @media (prefers-color-scheme: dark) {
