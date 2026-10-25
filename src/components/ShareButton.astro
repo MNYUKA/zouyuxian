@@ -1,0 +1,63 @@
+---
+// 文末分享区：一个居中的 Share 按钮（系统分享面板；无面板时退化为复制链接）
+// ＋ 下方一行低调的返回链接。挂在文章 / 单集 / 视频三个详情页。
+interface Props {
+  title: string;
+  backHref: string;
+  backLabel: string;
+}
+const { title, backHref, backLabel } = Astro.props;
+---
+
+<div class="sharewrap">
+  <button type="button" class="sharebtn" data-share data-title={title}>Share</button>
+  <a class="shareback" href={backHref}>← {backLabel}</a>
+</div>
+
+<style>
+  .sharewrap { text-align: center; margin-top: 52px; }
+  .sharebtn {
+    font-family: var(--sans); font-size: 14px; letter-spacing: .04em;
+    color: var(--text); background: transparent;
+    border: 1px solid var(--border); border-radius: 999px;
+    padding: 9px 30px; cursor: pointer; transition: border-color .2s, color .2s;
+  }
+  .sharebtn:hover { border-color: var(--text); }
+  .shareback {
+    display: block; margin-top: 20px;
+    font-family: var(--sans); font-size: 13px; color: var(--muted);
+  }
+  .shareback:hover { color: var(--text); }
+</style>
+
+<script>
+  document.querySelectorAll('[data-share]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const url = window.location.href;
+      const title = btn.getAttribute('data-title') || document.title;
+      if (navigator.share) {
+        try {
+          await navigator.share({ title, url });
+        } catch (e) {
+          /* 用户取消分享，什么都不做 */
+        }
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(url);
+      } catch (e) {
+        const ta = document.createElement('textarea');
+        ta.value = url;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+      }
+      const old = btn.textContent;
+      btn.textContent = 'Copied ✓';
+      setTimeout(() => {
+        btn.textContent = old;
+      }, 2000);
+    });
+  });
+</script>
