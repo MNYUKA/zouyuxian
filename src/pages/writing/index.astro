@@ -17,7 +17,7 @@ const catEn = (slug: string) => WRITING_CATEGORIES.find((c) => c.slug === slug)?
     <h1 style="font-family:var(--serif);font-size:34px;font-weight:400;letter-spacing:.06em;margin:0">Writing</h1>
 
     {articles.length === 0 ? (
-      <p style="color:var(--muted);margin-top:28px">还没有发布文章。去 Notion 写下第一篇吧。</p>
+      <p style="color:var(--muted);margin-top:28px">还没有发布文章。</p>
     ) : (
       <>
         <div class="filterbar" id="filterbar">
@@ -32,7 +32,7 @@ const catEn = (slug: string) => WRITING_CATEGORIES.find((c) => c.slug === slug)?
               <a href={`${base}writing/${slugOf(a.id)}/`}><h3>{a.data.title}</h3></a>
               <div class="meta">
                 <FormattedDate date={a.data.pubDate} />
-                {` · ${catEn(a.data.category)}`}
+                {' · '}<a class="catlink" href={`${base}writing/${a.data.category}/`}>{catEn(a.data.category)}</a>
                 {a.data.format && ` · ${FORMAT_CN[a.data.format] ?? a.data.format}`}
               </div>
               {a.data.description && <p class="desc">{a.data.description}</p>}

@@ -2,6 +2,7 @@
 import Base from '../../layouts/Base.astro';
 import FormattedDate from '../../components/FormattedDate.astro';
 import TagRow from '../../components/TagRow.astro';
+import ShareButton from '../../components/ShareButton.astro';
 import { getCollection, render } from 'astro:content';
 import { WRITING_CATEGORIES, FORMAT_CN, LANG_CN } from '../../consts';
 
@@ -27,7 +28,7 @@ const catEn = WRITING_CATEGORIES.find((c) => c.slug === entry.data.category)?.en
     <h1>{entry.data.title}</h1>
     <div class="meta">
       <FormattedDate date={entry.data.pubDate} />
-      {` · ${catEn}`}
+      {' · '}<a class="catlink" href={`${base}writing/${entry.data.category}/`}>{catEn}</a>
       {entry.data.format && ` · ${FORMAT_CN[entry.data.format] ?? entry.data.format}`}
       {entry.data.language && entry.data.language !== 'zh' && ` · ${LANG_CN[entry.data.language] ?? entry.data.language}`}
       {entry.data.updatedDate && (
@@ -38,5 +39,6 @@ const catEn = WRITING_CATEGORIES.find((c) => c.slug === entry.data.category)?.en
     <div class="body">
       <Content />
     </div>
+    <ShareButton title={entry.data.title} backHref={`${base}writing/`} backLabel="Writing" />
   </div>
 </Base>
