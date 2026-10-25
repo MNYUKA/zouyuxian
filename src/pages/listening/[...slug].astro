@@ -2,6 +2,7 @@
 import Base from '../../layouts/Base.astro';
 import FormattedDate from '../../components/FormattedDate.astro';
 import TagRow from '../../components/TagRow.astro';
+import ShareButton from '../../components/ShareButton.astro';
 import { getCollection, render } from 'astro:content';
 
 export async function getStaticPaths() {
@@ -31,12 +32,13 @@ const base = import.meta.env.BASE_URL;
     </div>
     {entry.data.audioUrl && (
       <div class="player" style="font-family:var(--sans);margin-bottom:28px">
-        <div class="plabel">播放本期（音频托管于 archive.org）</div>
+        <div class="plabel">播放本期</div>
         <audio controls preload="none" src={entry.data.audioUrl}></audio>
       </div>
     )}
     <div class="body">
       <Content />
     </div>
+    <ShareButton title={entry.data.title} backHref={`${base}listening/`} backLabel="Listening" />
   </div>
 </Base>
