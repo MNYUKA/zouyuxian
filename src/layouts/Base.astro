@@ -11,6 +11,8 @@ interface Props {
 const { title, description = SITE.description, current = '' } = Astro.props;
 const pageTitle = title ? `${title} · ${SITE.brand}` : `${SITE.title} · ${SITE.taglineEn}`;
 const base = import.meta.env.BASE_URL;
+const canonical = new URL(Astro.url.pathname, 'https://mnyuka.github.io').href;
+const ogImage = 'https://mnyuka.github.io/zouyuxian/avatar.jpg';
 ---
 
 <!DOCTYPE html>
@@ -23,6 +25,9 @@ const base = import.meta.env.BASE_URL;
   <meta property="og:title" content={pageTitle} />
   <meta property="og:description" content={description} />
   <meta property="og:type" content="website" />
+  <meta property="og:url" content={canonical} />
+  <meta property="og:image" content={ogImage} />
+  <link rel="alternate" type="application/rss+xml" title="Yuka 的点心房 · Writing" href={`${base}rss.xml`} />
   <link rel="icon" type="image/svg+xml" href={`${base}favicon.svg`} />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -46,7 +51,7 @@ const base = import.meta.env.BASE_URL;
     </div>
   </nav>
 
-  <main>
+  <main data-pagefind-body>
     <slot />
   </main>
 
