@@ -61,7 +61,7 @@ export const ARCHIVE_FORMS: Record<string, string[]> = {
 
 // Archive 分类
 export const ARCHIVE_TYPES = [
-  { slug: 'reading', en: 'Reading', cn: '重读过的书籍、博客与文章。' },
+  { slug: 'reading', en: 'Reread', cn: '重读过的书籍、博客与文章。' },
   { slug: 'watching', en: 'Watching', cn: '喜欢过的电影、电视剧、动画、综艺、纪录片、演讲、线上课程等视频。' },
   { slug: 'sound', en: 'Sound', cn: '陪伴过的歌曲与声音。' },
   { slug: 'places', en: 'Places', cn: '流连过的自然风景、城市、建筑与一些不知名之地。' },
