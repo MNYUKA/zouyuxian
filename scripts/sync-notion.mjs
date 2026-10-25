@@ -163,6 +163,24 @@ function frontmatter(obj) {
   return `---\n${lines.join('\n')}\n---\n`;
 }
 
+// 诗歌类正文保留单行换行：相邻的普通文本行之间补 Markdown 硬换行（行尾两空格），
+// 否则渲染时同一诗节的行会被并成一段。列表/标题/引文/表格/代码围栏内的行不动。
+function verseBreaks(md) {
+  const lines = md.split('\n');
+  let inFence = false;
+  const plain = (s) => {
+    const t = s.trimStart();
+    return t !== '' && !/^(#{1,6}\s|[-*+]\s|\d+\.\s|>|<\/|\||!\[|```|~~~|---+|\*\*\*+)/.test(t);
+  };
+  return lines.map((line, i) => {
+    if (/^\s*(```|~~~)/.test(line)) inFence = !inFence;
+    if (inFence) return line;
+    const next = lines[i + 1];
+    if (next !== undefined && plain(line) && plain(next)) return line + '  ';
+    return line;
+  }).join('\n');
+}
+
 // ---------- 分流构建 ----------
 async function buildWriting(page, slug) {
   const catRaw = selectOf(page, 'Topic');
@@ -171,8 +189,9 @@ async function buildWriting(page, slug) {
   const fmtRaw = selectOf(page, 'Format');
   const format = FORMAT_MAP[norm(fmtRaw)];
   if (fmtRaw && !format) warn(`未知 Format「${fmtRaw}」，已忽略（页：「${titleOf(page).slice(0, 24)}」）`);
-  const body = await bodyMarkdown(page, slug, 'writing');
   const tags = tagsOf(page);
+  const rawBody = await bodyMarkdown(page, slug, 'writing');
+  const body = tags.includes('Poetry') ? verseBreaks(rawBody) : rawBody;
   return {
     dir: 'writing', file: `${slug}.md`,
     content: frontmatter({
@@ -186,7 +205,8 @@ async function buildListening(page, slug) {
   const fmtRaw = selectOf(page, 'Format');
   const format = LISTENING_FORMAT_MAP[norm(fmtRaw)];
   if (fmtRaw && !format) warn(`未知 Format「${fmtRaw}」，已忽略（页：「${titleOf(page).slice(0, 24)}」）`);
-  const body = await bodyMarkdown(page, slug, 'listening');
+  const rawBody = await bodyMarkdown(page, slug, 'listening');
+  const body = format === 'Reading Aloud' ? verseBreaks(rawBody) : rawBody;
   const tags = tagsOf(page);
   return {
     dir: 'listening', file: `${slug}.md`,
