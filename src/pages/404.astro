@@ -1,0 +1,17 @@
+---
+import Base from '../layouts/Base.astro';
+
+const base = import.meta.env.BASE_URL;
+---
+
+<Base title="404">
+  <div class="narrow" style="padding-top:26px">
+    <h1 style="font-family:var(--serif);font-size:34px;font-weight:400;letter-spacing:.06em;margin:0">404</h1>
+    <p style="color:var(--muted);margin-top:20px;line-height:1.9">
+      这一页不存在。可能被我挪走了，也可能是地址写错了。
+    </p>
+    <p style="margin-top:14px">
+      <a href={base} style="color:var(--muted)">← 回到首页</a>
+    </p>
+  </div>
+</Base>
