@@ -3,6 +3,7 @@ import Base from '../../layouts/Base.astro';
 import FormattedDate from '../../components/FormattedDate.astro';
 import TagRow from '../../components/TagRow.astro';
 import VideoEmbed from '../../components/VideoEmbed.astro';
+import ShareButton from '../../components/ShareButton.astro';
 import { getCollection, render } from 'astro:content';
 
 export async function getStaticPaths() {
@@ -33,5 +34,6 @@ const base = import.meta.env.BASE_URL;
     <div class="body" style="margin-top:26px">
       <Content />
     </div>
+    <ShareButton title={entry.data.title} backHref={`${base}screen/`} backLabel="Screen" />
   </div>
 </Base>

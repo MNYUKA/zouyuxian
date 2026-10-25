@@ -1,7 +1,6 @@
 ---
 import Base from '../../layouts/Base.astro';
 import FormattedDate from '../../components/FormattedDate.astro';
-import VideoEmbed from '../../components/VideoEmbed.astro';
 import { getCollection } from 'astro:content';
 
 const base = import.meta.env.BASE_URL;
@@ -9,6 +8,11 @@ const videos = (await getCollection('screen')).sort(
   (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
 );
 const slugOf = (id: string) => id.replace(/\.md$/, '');
+// 列表页只放封面（点进详情页再播）：优先用 Notion 的 Cover Image URL，
+// 没有则自动取 YouTube 缩略图，再没有就用纯色封面垫底。
+const ytId = (u?: string) => u?.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{6,})/)?.[1];
+const coverOf = (v: (typeof videos)[number]) =>
+  v.data.image || (ytId(v.data.videoUrl) ? `https://i.ytimg.com/vi/${ytId(v.data.videoUrl)}/hqdefault.jpg` : null);
 ---
 
 <Base title="Screen" current="/screen/">
@@ -25,8 +29,31 @@ const slugOf = (id: string) => id.replace(/\.md$/, '');
           {v.data.format && ` · ${v.data.format}`}
         </div>
         {v.data.description && <p class="desc">{v.data.description}</p>}
-        {v.data.videoUrl && <VideoEmbed url={v.data.videoUrl} title={v.data.title} poster={v.data.image} />}
+        <a class="coverlink" href={`${base}screen/${slugOf(v.id)}/`} aria-label={v.data.title}>
+          <span class="videowrap coverwrap">
+            {coverOf(v) && <img src={coverOf(v)} alt="" loading="lazy" />}
+            <span class="playmark" aria-hidden="true">▶</span>
+          </span>
+        </a>
       </div>
     ))}
   </div>
 </Base>
+
+<style>
+  .coverlink { display: block; }
+  .coverwrap { display: block; background: #111; }
+  .coverwrap img {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; display: block;
+  }
+  .playmark {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: 54px; height: 54px; border-radius: 50%;
+    background: rgba(20, 20, 18, .55); color: #F4F4F2;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 19px; padding-left: 3px;
+    transition: background .2s;
+  }
+  .coverlink:hover .playmark { background: rgba(20, 20, 18, .78); }
+</style>
