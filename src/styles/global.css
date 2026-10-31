@@ -87,13 +87,13 @@ img { max-width: 100%; height: auto; }
 }
 .hero .rule { width: 60px; height: 1px; background: var(--text); margin-top: 26px; opacity: .5; }
 
-.secttl { font-family: var(--serif); font-size: 20px; font-weight: 400; letter-spacing: .14em; margin: 0 0 6px; }
+.secttl { font-family: var(--serif); font-size: 26px; font-weight: 700; letter-spacing: .06em; margin: 0 0 4px; border-top: 2px solid color-mix(in srgb, var(--text) 22%, var(--bg)); padding-top: 16px; }
 .secsub { font-size: 13px; color: var(--muted); margin-bottom: 26px; }
 
 /* ---------- 文章列表 ---------- */
 .postitem { padding: 22px 0; border-bottom: 1px solid var(--border); }
 .postitem:last-child { border-bottom: none; }
-.postitem h3 { font-family: var(--serif); font-size: 20px; font-weight: 400; margin: 0 0 6px; }
+.postitem h3 { font-family: var(--serif); font-size: 19px; font-weight: 400; margin: 0 0 6px; }
 .postitem .meta { font-size: 12.5px; color: var(--muted); letter-spacing: .05em; margin-bottom: 8px; }
 .postitem p.desc { font-size: 14.5px; color: var(--muted); margin: 0; line-height: 1.8; }
 
@@ -142,7 +142,7 @@ img { max-width: 100%; height: auto; }
 /* ---------- 文章正文（手机长排版） ---------- */
 .article h1 { font-family: var(--serif); font-size: 31px; font-weight: 400; line-height: 1.4; margin: 24px 0 12px; letter-spacing: .02em; }
 .article .meta { font-size: 13px; color: var(--muted); letter-spacing: .05em; margin-bottom: 30px; }
-.article .body { font-family: var(--serif); font-size: 17px; line-height: 1.95; }
+.article .body { font-family: var(--sans); font-size: 16.5px; line-height: 1.9; }
 .article .body p { margin: 0 0 1.2em; }
 .article .body h2 { font-size: 21px; font-weight: 400; margin: 2em 0 .8em; line-height: 1.5; }
 .article .body h3 { font-size: 18.5px; font-weight: 400; margin: 1.8em 0 .7em; }
@@ -214,7 +214,7 @@ mark { background: #E9E2CB; color: inherit; padding: 0 2px; border-radius: 2px; 
   .article[data-format="essay"] .body > p { margin-bottom: .4em; }
 }
 @media (max-width: 640px) {
-  .article .body { font-size: 17px; }
+  .article .body { font-size: 16.5px; }
 }
 
 /* ---------- 收藏 ---------- */
