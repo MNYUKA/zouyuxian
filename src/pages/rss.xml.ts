@@ -15,7 +15,7 @@ export async function GET(context: any) {
       title: a.data.title,
       description: a.data.description,
       pubDate: a.data.pubDate,
-      link: `/writing/${a.id.replace(/\.md$/, '')}/`,
+      link: `writing/${a.id.replace(/\.md$/, '')}/`,
     })),
   });
 }
