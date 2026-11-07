@@ -217,6 +217,50 @@ async function buildListening(page, slug) {
     }) + '\n' + body,
   };
 }
+// ---------- Sound 封面 / 页内播放器解析（仅 Archive 的 Sound 类） ----------
+// 在同步时按 Reference URL 的平台解析，写进 frontmatter，页面端不做运行时抓取。
+// Bilibili 封面要调公开接口——必须 fail soft：任何失败只让封面留空并警告，
+// 绝不中断同步（同步跑在每小时的 Actions 里，断了全站都不更新）。
+function youtubeIdOf(url) {
+  try {
+    const u = new URL(url || '');
+    let id = '';
+    if (u.hostname === 'youtu.be') id = u.pathname.slice(1).split('/')[0] || '';
+    else if (/(^|\.)youtube\.com$/.test(u.hostname)) id = u.searchParams.get('v') || '';
+    return /^[\w-]{6,}$/.test(id) ? id : '';
+  } catch { return ''; }
+}
+function bilibiliIdOf(url) {
+  const m = (url || '').match(/bilibili\.com\/video\/(BV[\w]+)/i);
+  return m ? m[1] : '';
+}
+async function bilibiliCoverOf(bvid) {
+  try {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 8000);
+    let res;
+    try {
+      res = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${bvid}`, { signal: ctl.signal });
+    } finally { clearTimeout(timer); }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    if (json.code !== 0 || !json.data?.pic) throw new Error(`接口 code=${json.code}`);
+    // pic 常为 http://，站是 https，混内容会被浏览器拦——统一升 https
+    return json.data.pic.replace(/^http:\/\//, 'https://');
+  } catch (e) {
+    warn(`Bilibili 封面获取失败（${bvid}）：${e.message}，该条封面留空`);
+    return '';
+  }
+}
+async function soundMediaOf(page, fallbackCover) {
+  const url = urlOf(page, 'Reference URL');
+  const yt = youtubeIdOf(url);
+  if (yt) return { cover: `https://i.ytimg.com/vi/${yt}/hqdefault.jpg`, embed: `https://www.youtube-nocookie.com/embed/${yt}` };
+  const bv = bilibiliIdOf(url);
+  if (bv) return { cover: (await bilibiliCoverOf(bv)) || fallbackCover, embed: `https://player.bilibili.com/player.html?bvid=${bv}&danmaku=0` };
+  return { cover: fallbackCover, embed: '' };
+}
+
 async function buildArchive(page, slug) {
   const typeRaw = selectOf(page, 'Archive Type');
   const type = ARCHIVE_TYPE_MAP[norm(typeRaw)];
@@ -228,12 +272,20 @@ async function buildArchive(page, slug) {
   if (fmtRaw && !form) warn(`未知 Archive Format「${fmtRaw}」，已忽略（页：「${titleOf(page).slice(0, 24)}」）`);
   const body = await bodyMarkdown(page, slug, 'archive');
   const tags = tagsOf(page);
+  // Sound 专属：解析封面与页内播放器地址；其他五类不写 cover/embed，行为不变
+  const media = type === 'sound' ? await soundMediaOf(page, image) : { cover: undefined, embed: undefined };
+  // Sound 专属：语言读 Notion 的 Language 原值（如 Chinese / Cantonese / Instrumental），
+  // 不过 LANG_MAP——筛选钮与条目归类文字要显示英文原值，映射成 zh/en 代码就对不上了；
+  // 未设语言时不写字段。其他五类不写 language，产出与改版前一致。
+  const language = type === 'sound' ? (selectOf(page, 'Language') || undefined) : undefined;
   return {
     dir: 'archive', file: `${slug}.md`,
     content: frontmatter({
       title: titleOf(page), type, description: textOf(page, 'Description'),
       url: urlOf(page, 'Reference URL') || undefined,
       date: pubDateOf(page), image, form,
+      cover: media.cover || undefined, embed: media.embed || undefined,
+      language,
       tags: tags.length ? tags : undefined,
     }) + '\n' + body,
   };
