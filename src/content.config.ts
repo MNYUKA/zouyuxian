@@ -42,6 +42,9 @@ const archiveItems = defineCollection({
     url: z.string().optional(), // 购买链接 / 歌曲链接 / 地图链接
     date: z.coerce.date(),
     image: z.string().optional(),
+    cover: z.string().optional(), // Sound 封面（同步时按 Reference URL 平台解析；其他五类不写此字段）
+    embed: z.string().optional(), // Sound 页内播放器嵌入地址（同步时生成；无此字段＝只能外链打开）
+    language: z.string().optional(), // Sound 语言（同步时读 Notion 的 Language 原值，如 Chinese / Cantonese；其他五类不写此字段）
     form: z.string().optional(), // 形式（子分类）：Book / Song / Dish 等，与 Notion 的 Format 选项同名
     tags: z.array(z.string()).optional(),
   }),
