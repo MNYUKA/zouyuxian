@@ -17,12 +17,85 @@ const items = (await getCollection('archive'))
   .filter((i) => i.data.type === type)
   .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
 
-// 形式筛选：条目 ≥ 8 且有 ≥ 2 种形式时才出现（攒够再分）
+// 形式筛选（其他五类）：条目 ≥ 8 且有 ≥ 2 种形式时才出现（攒够再分）
+// Sound 已改版为「分格＋格内筛选」，不再走这一套（见下方 Sound 专用段）。
 const formOrder = ARCHIVE_FORMS[type] ?? [];
 const presentForms = formOrder.filter((f) => items.some((i) => i.data.form === f));
 const extraForms = [...new Set(items.map((i) => i.data.form).filter(Boolean))].filter((f) => !presentForms.includes(f as string)) as string[];
 const filterForms = [...presentForms, ...extraForms];
-const showFilter = items.length >= 8 && filterForms.length >= 2;
+const showFilter = type !== 'sound' && items.length >= 8 && filterForms.length >= 2;
+
+// ---------- Sound 专用：分格＋格内筛选 ----------
+// cover/embed 由同步脚本写入；这里再做一次兜底推导（YouTube/Bilibili 的 embed
+// 可直接由链接得出），让旧内容文件在下次同步前也能正确渲染。
+// 页面上不出现来源平台名：能页内播的点封面展开播放器，不能播的点封面/标题直接外链过去。
+function ytIdOf(url?: string): string {
+  if (!url) return '';
+  try {
+    const u = new URL(url);
+    let id = '';
+    if (u.hostname === 'youtu.be') id = u.pathname.slice(1).split('/')[0] || '';
+    else if (/(^|\.)youtube\.com$/.test(u.hostname)) id = u.searchParams.get('v') || '';
+    return /^[\w-]{6,}$/.test(id) ? id : '';
+  } catch { return ''; }
+}
+function bvIdOf(url?: string): string {
+  const m = (url || '').match(/bilibili\.com\/video\/(BV[\w]+)/i);
+  return m ? m[1] : '';
+}
+
+const sectionOf = (form: string) =>
+  form === 'Song' || form === 'Playlist' ? 'songs'
+  : form === 'Podcast' ? 'pods'
+  : form === 'Other Sound' ? 'others'
+  : 'rest';
+
+const soundRows = items.map((i) => {
+  const d = i.data;
+  let cover = d.cover || d.image || '';
+  let embed = d.embed || '';
+  if (!embed && d.url) {
+    const yt = ytIdOf(d.url);
+    if (yt) {
+      embed = `https://www.youtube-nocookie.com/embed/${yt}`;
+      if (!cover) cover = `https://i.ytimg.com/vi/${yt}/hqdefault.jpg`;
+    } else {
+      const bv = bvIdOf(d.url);
+      if (bv) embed = `https://player.bilibili.com/player.html?bvid=${bv}&danmaku=0`;
+    }
+  }
+  const form = d.form ?? '';
+  const sec = sectionOf(form);
+  const lang = d.language ?? '';
+  const tags = d.tags ?? [];
+  // cover＝封面行（有封面的歌/播客单集）｜lite＝轻量行（其他声音、或无封面的歌/播客）
+  // plain＝纯文字行（三格之外的形式，如旧 Audiobook：挂在最后、无格标题、不带封面块，保证不丢件）
+  const kind = sec === 'rest' ? 'plain'
+    : sec === 'others' ? 'lite'
+    : cover ? 'cover' : 'lite';
+  // meta 行的归类文字：歌曲＝语言＋标签，播客/其他＝标签；全部用 Notion 存的英文原值，不翻译
+  const cls = (sec === 'songs' ? [lang, ...tags] : tags).filter(Boolean).join(' · ');
+  return { i, form, cover, embed, lang, tags, kind, cls, sec };
+});
+const rowsOf = (sec: string) => soundRows.filter((r) => r.sec === sec);
+const songRows = rowsOf('songs');
+const podRows = rowsOf('pods');
+const otherRows = rowsOf('others');
+const restRows = rowsOf('rest');
+const soundSections = [
+  { key: 'songs', title: 'Song', rows: songRows },
+  { key: 'pods', title: 'Podcast', rows: podRows },
+  { key: 'others', title: 'Other Sound', rows: otherRows },
+].filter((s) => s.rows.length > 0);
+
+// 格内筛选的取值：只认数据里真出现的值；某排 ≥ 2 个不同值时才长出来
+const distinct = (vals: string[]) => [...new Set(vals)];
+const langValues = distinct(songRows.map((r) => r.lang).filter(Boolean));
+const themeValues = distinct(songRows.flatMap((r) => r.tags));
+const fieldValues = distinct(podRows.flatMap((r) => r.tags));
+const showLang = langValues.length >= 2;
+const showTheme = themeValues.length >= 2;
+const showField = fieldValues.length >= 2;
 ---
 
 <Base title={meta.en} current="/archive/">
@@ -43,7 +116,149 @@ const showFilter = items.length >= 8 && filterForms.length >= 2;
           </div>
         )}
         <div id="arch-list">
-          {items.map((i) => (
+          {type === 'sound' ? (
+            <>
+              {soundSections.map((s) => (
+                <div class="soundsec" data-sec={s.key}>
+                  <div class="secthead">{s.title}<span class="cnt">{s.rows.length}</span></div>
+                  {s.key === 'songs' && (showLang || showTheme) && (
+                    <div>
+                      {showLang && (
+                        <div class="filterrow" data-group="lang">
+                          <span class="filterlabel">Language</span>
+                          <button class="chip on" data-val="all">All</button>
+                          {langValues.map((v) => <button class="chip" data-val={v}>{v}</button>)}
+                        </div>
+                      )}
+                      {showTheme && (
+                        <div class="filterrow" data-group="theme">
+                          <span class="filterlabel">Theme</span>
+                          <button class="chip on" data-val="all">All</button>
+                          {themeValues.map((v) => <button class="chip" data-val={v}>{v}</button>)}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {s.key === 'pods' && showField && (
+                    <div class="filterrow" data-group="field">
+                      <span class="filterlabel">Field</span>
+                      <button class="chip on" data-val="all">All</button>
+                      {fieldValues.map((v) => <button class="chip" data-val={v}>{v}</button>)}
+                    </div>
+                  )}
+                  {s.rows.map((r, idx) => (
+                    r.kind === 'cover' ? (
+                      <div class={`songitem${idx >= 3 ? ' extra' : ''}`} data-embed={r.embed || undefined} data-lang={r.lang || undefined} data-tags={r.tags.length ? r.tags.join('|') : undefined}>
+                        <div class="songrow">
+                          {r.embed ? (
+                            <button class="songcover" type="button" data-play aria-expanded="false" aria-label={`Play: ${r.i.data.title}`}>
+                              <img src={r.cover} alt="" loading="lazy" />
+                              <span class="playmark">▶</span>
+                            </button>
+                          ) : r.i.data.url ? (
+                            <a class="songcover" href={r.i.data.url} target="_blank" rel="noopener" aria-label={r.i.data.title}>
+                              <img src={r.cover} alt="" loading="lazy" />
+                              <span class="playmark">▶</span>
+                            </a>
+                          ) : (
+                            <span class="songcover">
+                              <img src={r.cover} alt="" loading="lazy" />
+                              <span class="playmark">▶</span>
+                            </span>
+                          )}
+                          <div class="songmain">
+                            <div class="songtitle">
+                              {!r.embed && r.i.data.url ? (
+                                <a class="titlelink" href={r.i.data.url} target="_blank" rel="noopener">{r.i.data.title}</a>
+                              ) : (
+                                r.i.data.title
+                              )}
+                              {r.form && <span class="formtag">{r.form}</span>}
+                            </div>
+                            {r.i.data.description && <div class="songdesc">{r.i.data.description}</div>}
+                            <div class="songmeta">
+                              <FormattedDate date={r.i.data.date} />
+                              {r.cls && <span>{r.cls}</span>}
+                            </div>
+                          </div>
+                        </div>
+                        {r.embed && <div class="songplayer" hidden></div>}
+                      </div>
+                    ) : r.kind === 'lite' ? (
+                      <div class={`liteitem${idx >= 3 ? ' extra' : ''}`} data-embed={r.embed || undefined} data-lang={r.lang || undefined} data-tags={r.tags.length ? r.tags.join('|') : undefined}>
+                        <div class="literow">
+                          {r.embed ? (
+                            <button class="liteplay" type="button" data-play aria-expanded="false" aria-label={`Play: ${r.i.data.title}`}>▶</button>
+                          ) : r.i.data.url ? (
+                            <a class="liteplay" href={r.i.data.url} target="_blank" rel="noopener" aria-label={r.i.data.title}>▶</a>
+                          ) : (
+                            <span class="liteplay">▶</span>
+                          )}
+                          <div class="songmain">
+                            <div class="litetitle">{r.i.data.title}{r.form && <span class="formtag">{r.form}</span>}</div>
+                            {r.i.data.description && <div class="litedesc">{r.i.data.description}</div>}
+                            <div class="litemeta">
+                              <FormattedDate date={r.i.data.date} />
+                              {r.cls && <span>{r.cls}</span>}
+                            </div>
+                          </div>
+                        </div>
+                        {r.embed && <div class="songplayer" hidden></div>}
+                      </div>
+                    ) : (
+                      <div class="songitem">
+                        <div class="songrow">
+                          <div class="songmain">
+                            <div class="songtitle">
+                              {r.i.data.url ? (
+                                <a class="titlelink" href={r.i.data.url} target="_blank" rel="noopener">{r.i.data.title}</a>
+                              ) : (
+                                r.i.data.title
+                              )}
+                              {r.form && <span class="formtag">{r.form}</span>}
+                            </div>
+                            {r.i.data.description && <div class="songdesc">{r.i.data.description}</div>}
+                            <div class="songmeta">
+                              <FormattedDate date={r.i.data.date} />
+                              {r.cls && <span>{r.cls}</span>}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  ))}
+                  {s.rows.length > 3 && (
+                    <button class="showall" type="button" data-total={s.rows.length}>Show all · {s.rows.length}</button>
+                  )}
+                </div>
+              ))}
+              {restRows.length > 0 && (
+                <div class="soundsec soundsec-rest" data-sec="rest">
+                  {restRows.map((r) => (
+                    <div class="songitem">
+                      <div class="songrow">
+                        <div class="songmain">
+                          <div class="songtitle">
+                            {r.i.data.url ? (
+                              <a class="titlelink" href={r.i.data.url} target="_blank" rel="noopener">{r.i.data.title}</a>
+                            ) : (
+                              r.i.data.title
+                            )}
+                            {r.form && <span class="formtag">{r.form}</span>}
+                          </div>
+                          {r.i.data.description && <div class="songdesc">{r.i.data.description}</div>}
+                          <div class="songmeta">
+                            <FormattedDate date={r.i.data.date} />
+                            {r.cls && <span>{r.cls}</span>}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          ) : items.map((i) => (
             <div class="architem" data-form={i.data.form ?? ''} style="padding:14px 0;border-bottom:1px solid var(--border)">
               <div class="t" style="font-size:17px">{i.data.url ? (<a class="titlelink" href={i.data.url} target="_blank" rel="noopener">{i.data.title}<span class="extmark">↗</span></a>) : (i.data.title)}{i.data.form && <span class="formtag">{i.data.form}</span>}</div>
               <div class="n" style="font-size:13.5px;color:var(--muted);margin-top:6px;line-height:1.8">
@@ -64,6 +279,57 @@ const showFilter = items.length >= 8 && filterForms.length >= 2;
   .titlelink:hover { text-decoration: underline; text-underline-offset: 4px; }
   .extmark { font-size: 12px; color: var(--muted); margin-left: 5px; vertical-align: 2px; }
   .titlelink:hover .extmark { color: var(--text); }
+
+  /* ===== Sound 专用（仅 /archive/sound/ 渲染，其他五类不出现这些类） ===== */
+  /* 分格标题：英文格名与 Format 值同名，后跟静默计数 */
+  .secthead { font-family: var(--serif); font-size: 21px; margin: 40px 0 4px; padding-top: 20px; border-top: 2px solid color-mix(in srgb, var(--text) 22%, var(--bg)); }
+  #arch-list > .soundsec:first-child > .secthead { margin-top: 6px; }
+  .secthead .cnt { font-family: var(--sans); font-size: 12.5px; color: var(--muted); margin-left: 10px; }
+  .soundsec-rest { margin-top: 28px; }
+  /* 格内筛选 */
+  .filterrow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 12px 0 2px; }
+  .filterlabel { font-size: 12.5px; color: var(--muted); margin-right: 2px; }
+  .chip { font-family: var(--sans); font-size: 12.5px; color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 2px 14px; background: transparent; cursor: pointer; }
+  .chip.on { background: var(--text); color: var(--bg); border-color: var(--text); }
+  /* 每格只显示最近 3 条：第 4 条起先藏（.extra），Show all 原地展开；
+     格内筛选一旦启用（.filtering）限制自动解除且钮隐藏；手动展开记在 .open 上，两者互不打架 */
+  .showall { display: block; margin: 16px auto 2px; background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 999px; padding: 7px 24px; font-size: 13px; cursor: pointer; font-family: var(--sans); letter-spacing: .03em; }
+  .soundsec.filtering .showall { display: none; }
+  .songitem.extra, .liteitem.extra { display: none; }
+  .soundsec.open .songitem.extra, .soundsec.open .liteitem.extra,
+  .soundsec.filtering .songitem.extra, .soundsec.filtering .liteitem.extra { display: block; }
+  /* 行版式 */
+  .songitem { padding: 20px 0; border-bottom: 1px solid var(--border); }
+  .songitem:last-child { border-bottom: none; }
+  .songrow { display: flex; gap: 18px; align-items: flex-start; }
+  .songcover { position: relative; flex: 0 0 104px; width: 104px; height: 104px; border-radius: 6px; overflow: hidden; background: #111; display: block; }
+  button.songcover { border: 0; padding: 0; cursor: pointer; font: inherit; }
+  .songcover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .songcover .playmark { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 40px; height: 40px; border-radius: 50%; background: rgba(20, 20, 18, .55); color: #F4F4F2; display: flex; align-items: center; justify-content: center; font-size: 14px; padding-left: 2px; transition: background .2s; }
+  .songcover:hover .playmark { background: rgba(20, 20, 18, .8); }
+  .songmain { flex: 1; min-width: 0; padding-top: 3px; }
+  .songtitle { font-family: var(--serif); font-size: 18.5px; line-height: 1.5; }
+  .songdesc { font-size: 14px; line-height: 1.8; margin-top: 5px; }
+  .songmeta { font-size: 12.5px; color: var(--muted); margin-top: 7px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+  .songplayer { margin-top: 16px; }
+  .videowrap { position: relative; aspect-ratio: 16 / 9; background: #111; border-radius: 8px; overflow: hidden; }
+  .videowrap iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
+  /* 轻量行：其他声音、以及无封面的歌/播客 */
+  .liteitem { padding: 16px 0; border-bottom: 1px solid var(--border); }
+  .liteitem:last-child { border-bottom: none; }
+  .literow { display: flex; gap: 14px; align-items: flex-start; }
+  .liteplay { flex: 0 0 44px; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--border); color: var(--muted); display: flex; align-items: center; justify-content: center; font-size: 13px; padding-left: 2px; margin-top: 2px; text-decoration: none; }
+  button.liteplay { background: none; cursor: pointer; font: inherit; }
+  .liteplay:hover { color: var(--text); border-color: var(--text); }
+  .litetitle { font-family: var(--serif); font-size: 17px; line-height: 1.5; }
+  .litedesc { font-size: 13.5px; line-height: 1.75; margin-top: 3px; }
+  .litemeta { font-size: 12.5px; color: var(--muted); margin-top: 5px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+  @media (max-width: 640px) {
+    .songcover { flex-basis: 84px; width: 84px; height: 84px; }
+    .songcover .playmark { width: 34px; height: 34px; font-size: 12px; }
+    .songtitle { font-size: 17px; }
+    .liteplay { flex-basis: 40px; width: 40px; height: 40px; }
+  }
 </style>
 
 <script>
@@ -78,6 +344,87 @@ const showFilter = items.length >= 8 && filterForms.length >= 2;
     items.forEach((el) => {
       const show = form === 'all' || (el as HTMLElement).dataset.form === form;
       (el as HTMLElement).style.display = show ? '' : 'none';
+    });
+  });
+</script>
+
+<script>
+  // Sound 页内播放：点封面 / 圆钮展开播放器，全页同时只开一个；
+  // iframe 在点开那一刻才创建并赋值 src（懒加载，收起时销毁以停播）
+  const playable = Array.from(document.querySelectorAll('.songitem[data-embed], .liteitem[data-embed]'));
+  function closePlayer(item: Element) {
+    const panel = item.querySelector('.songplayer') as HTMLElement | null;
+    if (panel) { panel.innerHTML = ''; panel.hidden = true; }
+    item.querySelector('[data-play]')?.setAttribute('aria-expanded', 'false');
+  }
+  playable.forEach((item) => {
+    const btn = item.querySelector('[data-play]');
+    const panel = item.querySelector('.songplayer') as HTMLElement | null;
+    if (!btn || !panel) return;
+    btn.addEventListener('click', () => {
+      const opening = panel.hidden;
+      playable.forEach((o) => { if (o !== item) closePlayer(o); });
+      if (!opening) { closePlayer(item); return; }
+      const wrap = document.createElement('div');
+      wrap.className = 'videowrap';
+      const iframe = document.createElement('iframe');
+      iframe.src = (item as HTMLElement).dataset.embed || '';
+      iframe.title = '页内播放器';
+      iframe.allow = 'accelerometer; autoplay; encrypted-media; picture-in-picture';
+      iframe.allowFullscreen = true;
+      wrap.appendChild(iframe);
+      panel.appendChild(wrap);
+      panel.hidden = false;
+      btn.setAttribute('aria-expanded', 'true');
+    });
+  });
+</script>
+
+<script>
+  // Sound 格内筛选：每格独立（歌曲 Language/Theme 两排叠加，播客 Field 一排）；
+  // 语言按条目 language 精确匹配，主题/领域按条目标签包含匹配。隐藏全部条目时格标题与筛选排保留。
+  document.querySelectorAll('.soundsec').forEach((sec) => {
+    // Show all / Show less：手动展开状态记在格上（.open），与筛选状态分开算
+    const saBtn = sec.querySelector('.showall') as HTMLButtonElement | null;
+    let manualOpen = false;
+    if (saBtn) {
+      saBtn.addEventListener('click', () => {
+        manualOpen = !manualOpen;
+        sec.classList.toggle('open', manualOpen);
+        saBtn.textContent = manualOpen ? 'Show less' : `Show all · ${saBtn.dataset.total}`;
+      });
+    }
+    const rows = Array.from(sec.querySelectorAll('.filterrow'));
+    if (!rows.length) return;
+    const secItems = Array.from(sec.querySelectorAll('.songitem, .liteitem')) as HTMLElement[];
+    const state = new Map<string, string>();
+    rows.forEach((row) => {
+      const group = (row as HTMLElement).dataset.group || '';
+      state.set(group, 'all');
+      row.addEventListener('click', (e) => {
+        const btn = (e.target as HTMLElement).closest('button');
+        if (!btn) return;
+        row.querySelectorAll('button').forEach((b) => b.classList.remove('on'));
+        btn.classList.add('on');
+        state.set(group, btn.dataset.val || 'all');
+        secItems.forEach((el) => {
+          let ok = true;
+          state.forEach((val, g) => {
+            if (val === 'all') return;
+            if (g === 'lang') {
+              if (el.dataset.lang !== val) ok = false;
+            } else {
+              const tags = (el.dataset.tags || '').split('|').filter(Boolean);
+              if (!tags.includes(val)) ok = false;
+            }
+          });
+          el.style.display = ok ? '' : 'none';
+        });
+        // 任一排离开 All 即进入筛选态：3 条限制解除、Show all 钮隐藏；
+        // 全部回到 All 时退出筛选态，是否展开只看手动状态（.open）
+        const filtering = [...state.values()].some((v) => v !== 'all');
+        sec.classList.toggle('filtering', filtering);
+      });
     });
   });
 </script>
