@@ -1,3 +1,10 @@
+@font-face {
+  font-family: "Work Sans";
+  src: url("/zouyuxian/fonts/work-sans.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
 /* 🍮 Yuka 的点心房 · 设计系统
    颜色 A（暖浅灰）＋ 深色模式（跟随系统）
    中文衬线：思源宋体 Noto Serif SC；小字/控件：系统无衬线 */
@@ -7,8 +14,8 @@
   --text: #1F1F1F;
   --muted: #5C5C5C;
   --border: #D8D8D6;
-  --serif: "Noto Serif SC", "Songti SC", "STSong", "SimSun", serif;
-  --sans: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  --serif: "Work Sans", "Noto Serif SC", "Songti SC", "STSong", "SimSun", serif;
+  --sans: "Work Sans", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
